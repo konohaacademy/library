@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>数と式 ｜ 解説</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#6366f1; --primary-dark:#4f46e5; --primary-light:#e0e7ff;
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+  --text-muted:#64748b; --success:#10b981; --radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:0 16px 64px;background:var(--bg);
+     font-family:'Noto Sans JP',system-ui,sans-serif;color:#1e293b;line-height:1.9}
+header{max-width:820px;margin:0 auto;padding:32px 0 20px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--text-muted);font-size:.9rem;margin:0}
+main{max-width:820px;margin:0 auto}
+.q{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+   padding:22px 24px;margin:0 0 20px;scroll-margin-top:16px}
+.q:target{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.no{display:inline-block;background:var(--primary);color:#fff;font-weight:700;
+    border-radius:999px;padding:2px 14px;font-size:.85rem;margin-bottom:12px}
+.stem{font-size:1.05rem;margin:0 0 14px}
+.ans{display:inline-block;background:var(--success);color:#fff;font-weight:700;
+     border-radius:8px;padding:4px 14px;margin-bottom:16px}
+.blk{margin:14px 0 0;padding-left:14px;border-left:3px solid var(--primary-light)}
+.blk h3{font-size:.92rem;margin:0 0 4px;color:var(--primary-dark)}
+.blk p{margin:0}
+nav{max-width:820px;margin:0 auto 24px;display:flex;flex-wrap:wrap;gap:8px}
+nav a{background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:6px 14px;text-decoration:none;color:var(--primary-dark);font-weight:700;font-size:.9rem}
+nav a:hover{background:var(--primary-light)}
+.katex{font-size:1.05em}
+</style>
+</head>
+<body>
+<header>
+  <h1>数学 01　数と式</h1>
+  <p class="sub">解説（全10問）　※問題を解いたあとに読んでください</p>
+</header>
+<nav><a href="#q1">問1</a><a href="#q2">問2</a><a href="#q3">問3</a><a href="#q4">問4</a><a href="#q5">問5</a><a href="#q6">問6</a><a href="#q7">問7</a><a href="#q8">問8</a><a href="#q9">問9</a><a href="#q10">問10</a></nav>
+<main>
+<article class="q" id="q1">
+<span class="no">問 1</span>
+<p class="stem">$(2x+3)(x-5)$ を展開すると $2x^{2}-$ア$x-15$ となる。</p>
+<div class="ans">正解　⑦ 7</div>
+<div class="blk"><h3>着眼点</h3><p>展開して $x$ の項だけを集めればよい。定数項 $-15$ はすでに与えられているので、途中の計算が合っているかの手がかりになる。</p></div>
+<div class="blk"><h3>解法</h3><p>$(2x+3)(x-5) = 2x\cdot x + 2x\cdot(-5) + 3\cdot x + 3\cdot(-5) = 2x^{2}-10x+3x-15 = 2x^{2}-7x-15$。したがって $-$ア$x = -7x$ となり、ア＝7。</p></div>
+<div class="blk"><h3>検算</h3><p>$x$ に $1$ を代入して確かめる。左辺は $(2+3)(1-5) = 5\times(-4) = -20$。右辺は $2-7-15 = -20$。一致するので正しい。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>符号の扱いで落とす人が多い。問題文が $2x^{2}-$ア$x$ と書いているので、アに入るのは $-7$ ではなく $7$ である。空欄の直前にある符号まで含めて読むこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>2次式の展開は $(ax+b)(cx+d) = acx^{2}+(ad+bc)x+bd$。$x$ の係数は「たすきがけ」の形 $ad+bc$ になる。ここでは $2\cdot(-5)+3\cdot 1 = -7$ と一発で出せる。</p></div>
+</article>
+<article class="q" id="q2">
+<span class="no">問 2</span>
+<p class="stem">$6x^{2}+$イ$x-6$ を因数分解すると $(2x+3)(3x-2)$ となる。</p>
+<div class="ans">正解　⑤ 5</div>
+<div class="blk"><h3>着眼点</h3><p>因数分解の結果が与えられているので、それを展開し直して $x$ の係数を読めばよい。因数分解そのものを一から探す必要はない。</p></div>
+<div class="blk"><h3>解法</h3><p>$(2x+3)(3x-2) = 6x^{2}-4x+9x-6 = 6x^{2}+5x-6$。したがってイ＝5。</p></div>
+<div class="blk"><h3>検算</h3><p>$x$ に $1$ を代入する。左辺は $6+5-6 = 5$。右辺は $(2+3)(3-2) = 5\times 1 = 5$。一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$-4x$ と $+9x$ を足すとき、符号を見誤って $-5$ としてしまう誤りが多い。外側どうしの積 $2x\cdot(-2) = -4x$、内側どうしの積 $3\cdot 3x = 9x$ を分けて書き出すと防げる。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>たすきがけは、左の列に $2$ と $3$、右の列に $3$ と $-2$ を置き、斜めに掛けて足すと $x$ の係数が出る。$2\times(-2)+3\times 3 = 5$。定数項は $3\times(-2) = -6$、$x^{2}$ の係数は $2\times 3 = 6$ で合う。</p></div>
+</article>
+<article class="q" id="q3">
+<span class="no">問 3</span>
+<p class="stem">$x^{2}-10x+16$ を因数分解すると $(x-2)(x-$ウ$)$ となる。</p>
+<div class="ans">正解　⑧ 8</div>
+<div class="blk"><h3>着眼点</h3><p>足して $10$、掛けて $16$ になる2数を探す。一方が $2$ と与えられているので、もう一方は積か和のどちらかから即座に決まる。</p></div>
+<div class="blk"><h3>解法</h3><p>$(x-2)(x-$ウ$) = x^{2}-(2+$ウ$)x+2\cdot$ウ。$x$ の係数を比べて $2+$ウ$=10$ より ウ＝8。定数項でも $2\cdot$ウ$=16$ より ウ＝8 となり一致する。</p></div>
+<div class="blk"><h3>検算</h3><p>$(x-2)(x-8) = x^{2}-8x-2x+16 = x^{2}-10x+16$。もとの式に戻るので正しい。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>係数を比べるとき、$x$ の項が $-(2+$ウ$)x$ であることを忘れて $2+$ウ$=-10$ としてしまう誤りがある。展開の形を一度書き下してから比べると確実。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$x^{2}+px+q = (x-\alpha)(x-\beta)$ のとき、$\alpha+\beta = -p$、$\alpha\beta = q$。これは2次方程式の解と係数の関係そのもので、因数分解と方程式の解は同じ内容を別の言い方で述べたものである。</p></div>
+</article>
+<article class="q" id="q4">
+<span class="no">問 4</span>
+<p class="stem">$\sqrt{12-6\sqrt{3}}$ を簡単にすると エ$-\sqrt{3}$ となる。</p>
+<div class="ans">正解　③ 3</div>
+<div class="blk"><h3>着眼点</h3><p>根号の中を $(a-b)^{2}$ の形に変形できないかを試す。二重根号は中身が平方になれば外れる。</p></div>
+<div class="blk"><h3>解法</h3><p>中の $6\sqrt{3}$ を $2\times 3\times\sqrt{3}$ と見る。すると $12-6\sqrt{3} = 9-2\cdot 3\cdot\sqrt{3}+3 = 3^{2}-2\cdot 3\cdot\sqrt{3}+(\sqrt{3})^{2} = (3-\sqrt{3})^{2}$。よって $\sqrt{12-6\sqrt{3}} = |3-\sqrt{3}|$ であり、$3 &gt; \sqrt{3}$ なので $3-\sqrt{3}$。したがってエ＝3。</p></div>
+<div class="blk"><h3>検算</h3><p>おおよその値で確かめる。$\sqrt{3} \fallingdotseq 1.73$ なので $12-6\times 1.73 = 1.62$、その平方根は約 $1.27$。一方 $3-1.73 = 1.27$。一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$(3-\sqrt{3})^{2}$ の平方根を $3-\sqrt{3}$ と機械的に書いてよいのは、$3-\sqrt{3}$ が正のときだけである。もし $\sqrt{3}-3$ のように負になる形なら、絶対値を外すときに符号が反転する。必ず大小を確かめること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>二重根号 $\sqrt{a \pm 2\sqrt{b}}$ は、足して $a$、掛けて $b$ になる2数 $p,\ q$ を見つけて $\sqrt{p} \pm \sqrt{q}$ と外す。この問題では $6\sqrt{3} = 2\sqrt{27}$ と直せば、足して $12$、掛けて $27$ の組 $9$ と $3$ が見え、$\sqrt{9}-\sqrt{3} = 3-\sqrt{3}$ と求まる。</p></div>
+</article>
+<article class="q" id="q5">
+<span class="no">問 5</span>
+<p class="stem">$x = 3+2\sqrt{2}$ のとき、$x+\dfrac{1}{x}$ の値は オ である。</p>
+<div class="ans">正解　⑥ 6</div>
+<div class="blk"><h3>着眼点</h3><p>$\dfrac{1}{x}$ を有理化すれば、無理数の部分が打ち消し合うかどうかが見える。分母の $3+2\sqrt{2}$ に対し $3-2\sqrt{2}$ を掛けるのが定石。</p></div>
+<div class="blk"><h3>解法</h3><p>$\dfrac{1}{x} = \dfrac{1}{3+2\sqrt{2}} = \dfrac{3-2\sqrt{2}}{(3+2\sqrt{2})(3-2\sqrt{2})} = \dfrac{3-2\sqrt{2}}{9-8} = 3-2\sqrt{2}$。したがって $x+\dfrac{1}{x} = (3+2\sqrt{2})+(3-2\sqrt{2}) = 6$。よってオ＝6。</p></div>
+<div class="blk"><h3>検算</h3><p>$\sqrt{2} \fallingdotseq 1.414$ とすると $x \fallingdotseq 5.828$、$\dfrac{1}{x} \fallingdotseq 0.172$。足すと約 $6.00$ で一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>分母の有理化で $(3+2\sqrt{2})(3-2\sqrt{2}) = 9-4\cdot 2 = 1$ となる計算を、$9-2 = 7$ などと誤りやすい。$(2\sqrt{2})^{2} = 4\times 2 = 8$ であることを丁寧に確かめること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$x = 3+2\sqrt{2}$ は $x^{2}-6x+1 = 0$ の解である。この式の両辺を $x$ で割ると $x-6+\dfrac{1}{x} = 0$、すなわち $x+\dfrac{1}{x} = 6$ が直ちに得られる。有理化せずに求める道もある。</p></div>
+</article>
+<article class="q" id="q6">
+<span class="no">問 6</span>
+<p class="stem">$x = 3+2\sqrt{2}$ のとき、$x^{2}+\dfrac{1}{x^{2}}$ の値は カキ である。</p>
+<div class="ans">正解　③ 3</div>
+<div class="blk"><h3>着眼点</h3><p>$x^{2}$ と $\dfrac{1}{x^{2}}$ を別々に計算するのではなく、$x+\dfrac{1}{x}$ の値を利用する。2乗の展開で相殺が起こる。</p></div>
+<div class="blk"><h3>解法</h3><p>前問より $x+\dfrac{1}{x} = 6$。両辺を2乗すると $\left(x+\dfrac{1}{x}\right)^{2} = x^{2}+2\cdot x\cdot\dfrac{1}{x}+\dfrac{1}{x^{2}} = x^{2}+2+\dfrac{1}{x^{2}}$。よって $x^{2}+\dfrac{1}{x^{2}} = 6^{2}-2 = 34$。カキ＝34 なので、十の位のカ＝3。</p></div>
+<div class="blk"><h3>検算</h3><p>直接計算しても確かめられる。$x^{2} = (3+2\sqrt{2})^{2} = 9+12\sqrt{2}+8 = 17+12\sqrt{2}$、$\dfrac{1}{x^{2}} = (3-2\sqrt{2})^{2} = 17-12\sqrt{2}$。足すと $34$ で一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$\left(x+\dfrac{1}{x}\right)^{2}$ を展開したとき、真ん中の項が $2$ になることを見落として $x^{2}+\dfrac{1}{x^{2}} = 36$ としてしまう誤りが多い。$x\cdot\dfrac{1}{x} = 1$ なので中央の項は $2\times 1 = 2$ である。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>対称式は基本対称式で表せる。$x+\dfrac{1}{x} = s$ とおくと $x^{2}+\dfrac{1}{x^{2}} = s^{2}-2$、$x^{3}+\dfrac{1}{x^{3}} = s^{3}-3s$ となる。$s$ さえ求めれば次数の高い式も芋づる式に出る。</p></div>
+</article>
+<article class="q" id="q7">
+<span class="no">問 7</span>
+<p class="stem">$x = 3+2\sqrt{2}$ のとき、$x^{2}+\dfrac{1}{x^{2}}$ の値は $3$キ である。</p>
+<div class="ans">正解　④ 4</div>
+<div class="blk"><h3>着眼点</h3><p>前問と同じ計算の一の位を答える。$x+\dfrac{1}{x} = 6$ から $x^{2}+\dfrac{1}{x^{2}} = 6^{2}-2$ を求める流れは変わらない。</p></div>
+<div class="blk"><h3>解法</h3><p>$x^{2}+\dfrac{1}{x^{2}} = \left(x+\dfrac{1}{x}\right)^{2}-2 = 36-2 = 34$。十の位が $3$、一の位が $4$ なので キ＝4。</p></div>
+<div class="blk"><h3>検算</h3><p>$x^{2} = 17+12\sqrt{2}$、$\dfrac{1}{x^{2}} = 17-12\sqrt{2}$ を直接足すと $34$。$\sqrt{2}$ の項が打ち消し合って整数になる点も、答えが整数であることの裏づけになる。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$36-2$ を $36-4$ と誤る例がある。引くのは $2\cdot x\cdot\dfrac{1}{x}$ の $2$ であって、2乗した値ではない。展開の各項を書き出して確かめること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$x^{2}+\dfrac{1}{x^{2}}$ が整数になるのは、$x$ と $\dfrac{1}{x}$ が互いに共役な無理数だからである。$3+2\sqrt{2}$ と $3-2\sqrt{2}$ のように、無理数の部分の符号だけが違う2数を共役といい、和と積はともに有理数になる。</p></div>
+</article>
+<article class="q" id="q8">
+<span class="no">問 8</span>
+<p class="stem">2つの実数 $a,\ b$ が $a+b=5$、$ab=3$ を満たすとき、<br>$a^{2}+b^{2}$ の値は クケ である。</p>
+<div class="ans">正解　① 1</div>
+<div class="blk"><h3>着眼点</h3><p>$a$ と $b$ の値を個別に求める必要はない。$a^{2}+b^{2}$ は和と積だけで表せる。</p></div>
+<div class="blk"><h3>解法</h3><p>$(a+b)^{2} = a^{2}+2ab+b^{2}$ だから、$a^{2}+b^{2} = (a+b)^{2}-2ab = 5^{2}-2\times 3 = 25-6 = 19$。クケ＝19 なので、十の位のク＝1。</p></div>
+<div class="blk"><h3>検算</h3><p>$a,\ b$ は $t^{2}-5t+3 = 0$ の2解で、$t = \dfrac{5 \pm \sqrt{13}}{2}$。それぞれ2乗して足すと $\dfrac{(25+10\sqrt{13}+13)+(25-10\sqrt{13}+13)}{4} = \dfrac{76}{4} = 19$。一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$a^{2}+b^{2} = (a+b)^{2}-ab$ と、$2$ を掛け忘れる誤りが目立つ。展開の中央の項は $2ab$ なので、引くのも $2ab$ である。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$a+b$ と $ab$ を基本対称式という。$a^{2}+b^{2} = (a+b)^{2}-2ab$、$a^{3}+b^{3} = (a+b)^{3}-3ab(a+b)$、$(a-b)^{2} = (a+b)^{2}-4ab$。どれも基本対称式だけで書けるので、個々の値を求めずに済む。</p></div>
+</article>
+<article class="q" id="q9">
+<span class="no">問 9</span>
+<p class="stem">2つの実数 $a,\ b$ が $a+b=5$、$ab=3$ を満たすとき、<br>$a^{2}+b^{2}$ の値は $1$ケ である。</p>
+<div class="ans">正解　⑨ 9</div>
+<div class="blk"><h3>着眼点</h3><p>前問と同じ式の一の位を答える。$a^{2}+b^{2} = (a+b)^{2}-2ab$ を使う流れは変わらない。</p></div>
+<div class="blk"><h3>解法</h3><p>$a^{2}+b^{2} = 5^{2}-2\times 3 = 25-6 = 19$。十の位が $1$、一の位が $9$ なので ケ＝9。</p></div>
+<div class="blk"><h3>検算</h3><p>$a+b = 5$、$ab = 3$ より $(a-b)^{2} = (a+b)^{2}-4ab = 25-12 = 13$。$a^{2}+b^{2} = \dfrac{(a+b)^{2}+(a-b)^{2}}{2} = \dfrac{25+13}{2} = 19$ となり、別の道からも同じ値が出る。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$25-6$ の引き算そのものより、$2ab$ を $2\times 3 = 6$ と正しく計算できるかで差がつく。$ab = 3$ をそのまま引いて $22$ としてしまう誤りに注意。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$a^{2}+b^{2} \geqq 2ab$ は相加平均と相乗平均の関係から従う。ここでも $19 \geqq 6$ が成り立っている。答えが出たあとに不等式で妥当性を眺める習慣をつけると、大きな計算違いに気づける。</p></div>
+</article>
+<article class="q" id="q10">
+<span class="no">問 10</span>
+<p class="stem">整式 $x^{3}-2x^{2}+3x-4$ を $x-2$ で割ったときの余りは コ である。</p>
+<div class="ans">正解　② 2</div>
+<div class="blk"><h3>着眼点</h3><p>1次式で割った余りを問われているので、実際に割り算をせず剰余定理を使う。余りは定数になる。</p></div>
+<div class="blk"><h3>解法</h3><p>$f(x) = x^{3}-2x^{2}+3x-4$ とおく。$x-2$ で割った余りは $f(2)$ である。$f(2) = 8-2\times 4+3\times 2-4 = 8-8+6-4 = 2$。よってコ＝2。</p></div>
+<div class="blk"><h3>検算</h3><p>実際に割ると $x^{3}-2x^{2}+3x-4 = (x-2)(x^{2}+3)+2$ となる。展開すると $x^{3}+3x-2x^{2}-6+2 = x^{3}-2x^{2}+3x-4$ でもとに戻る。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$x-2$ で割るときに代入するのは $x = 2$ であって $x = -2$ ではない。$x-a$ で割った余りが $f(a)$ であり、割る式を $0$ にする値を代入すると覚えるとよい。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>余りが $0$ のとき、すなわち $f(a) = 0$ のとき $x-a$ は $f(x)$ を割り切る。これが因数定理で、高次方程式を解く際にまず整数の解を探すのはこの定理を使うためである。</p></div>
+</article>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [{left: "$", right: "$", display: false}],
+    throwOnError: false
+  });
+});
+</script>
+</body>
+</html>

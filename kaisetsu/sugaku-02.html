@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>1次不等式と絶対値 ｜ 解説</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#6366f1; --primary-dark:#4f46e5; --primary-light:#e0e7ff;
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+  --text-muted:#64748b; --success:#10b981; --radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:0 16px 64px;background:var(--bg);
+     font-family:'Noto Sans JP',system-ui,sans-serif;color:#1e293b;line-height:1.9}
+header{max-width:820px;margin:0 auto;padding:32px 0 20px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--text-muted);font-size:.9rem;margin:0}
+main{max-width:820px;margin:0 auto}
+.q{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+   padding:22px 24px;margin:0 0 20px;scroll-margin-top:16px}
+.q:target{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.no{display:inline-block;background:var(--primary);color:#fff;font-weight:700;
+    border-radius:999px;padding:2px 14px;font-size:.85rem;margin-bottom:12px}
+.stem{font-size:1.05rem;margin:0 0 14px}
+.ans{display:inline-block;background:var(--success);color:#fff;font-weight:700;
+     border-radius:8px;padding:4px 14px;margin-bottom:16px}
+.blk{margin:14px 0 0;padding-left:14px;border-left:3px solid var(--primary-light)}
+.blk h3{font-size:.92rem;margin:0 0 4px;color:var(--primary-dark)}
+.blk p{margin:0}
+nav{max-width:820px;margin:0 auto 24px;display:flex;flex-wrap:wrap;gap:8px}
+nav a{background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:6px 14px;text-decoration:none;color:var(--primary-dark);font-weight:700;font-size:.9rem}
+nav a:hover{background:var(--primary-light)}
+.katex{font-size:1.05em}
+</style>
+</head>
+<body>
+<header>
+  <h1>数学 02　1次不等式と絶対値</h1>
+  <p class="sub">解説（全10問）　※問題を解いたあとに読んでください</p>
+</header>
+<nav><a href="#q1">問1</a><a href="#q2">問2</a><a href="#q3">問3</a><a href="#q4">問4</a><a href="#q5">問5</a><a href="#q6">問6</a><a href="#q7">問7</a><a href="#q8">問8</a><a href="#q9">問9</a><a href="#q10">問10</a></nav>
+<main>
+<article class="q" id="q1">
+<span class="no">問 1</span>
+<p class="stem">不等式 $3x-7 &lt; 5x+1$ を解くと $x &gt; -$ア である。</p>
+<div class="ans">正解　④ 4</div>
+<div class="blk"><h3>着眼点</h3><p>$x$ を含む項を一方に、定数を他方に集める。負の数で割るときに不等号の向きが変わる点だけ気をつければ、1次方程式と同じ手順で解ける。</p></div>
+<div class="blk"><h3>解法</h3><p>$3x-7 &lt; 5x+1$ の両辺から $5x$ を引き、$7$ を足すと $3x-5x &lt; 1+7$、すなわち $-2x &lt; 8$。両辺を $-2$ で割ると不等号の向きが変わり $x &gt; -4$。よってア＝4。</p></div>
+<div class="blk"><h3>検算</h3><p>境界の $x = -4$ を代入すると左辺は $-12-7 = -19$、右辺は $-20+1 = -19$ で等しい。境界より大きい $x = 0$ では左辺 $-7$、右辺 $1$ で確かに左辺が小さい。向きは正しい。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>負の数で割るときに不等号を反転し忘れる誤りが最も多い。反転が不安なら、$x$ の項を正の側に集めて $8 &gt; 2x$ としてから $4 &gt; x$ と直す道もある。この形なら割る数が正なので向きは変わらない。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>不等式で向きが変わるのは、負の数を掛けるときと負の数で割るときだけである。両辺に同じ数を足す・引く操作では向きは変わらない。この区別を徹底すれば符号の事故は起きない。</p></div>
+</article>
+<article class="q" id="q2">
+<span class="no">問 2</span>
+<p class="stem">連立不等式 $\ 2x+3 \geqq x-2\ $ かつ $\ 3x-2 &lt; x+6\ $ を解くと<br>$-$イ$\ \leqq x &lt; 4$ である。</p>
+<div class="ans">正解　⑤ 5</div>
+<div class="blk"><h3>着眼点</h3><p>連立不等式はそれぞれを別々に解き、最後に共通部分をとる。この問題では左側の境界を問われているので、1つ目の不等式だけで決まる。</p></div>
+<div class="blk"><h3>解法</h3><p>$2x+3 \geqq x-2$ より $2x-x \geqq -2-3$、すなわち $x \geqq -5$。もう一方の $3x-2 &lt; x+6$ は $2x &lt; 8$ より $x &lt; 4$。共通部分は $-5 \leqq x &lt; 4$ なので イ＝5。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = -5$ は1つ目に等号で入り、2つ目は $-17 &lt; 1$ で成り立つ。$x = -6$ は1つ目が $-9 \geqq -8$ となって成り立たない。境界は確かに $-5$ である。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>2つの解の範囲を数直線に書かずに頭の中で合わせようとすると、共通部分と和集合を取り違えやすい。「かつ」は重なった部分、「または」は合わせた部分である。必ず数直線を書くこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>等号の有無は答えの書き方に直結する。1つ目は $\geqq$ なので $-5$ を含み、2つ目は $&lt;$ なので $4$ を含まない。境界の値がそれぞれの不等式を満たすかを代入して確かめる習慣をつけるとよい。</p></div>
+</article>
+<article class="q" id="q3">
+<span class="no">問 3</span>
+<p class="stem">連立不等式 $\ 2x+3 \geqq x-2\ $ かつ $\ 3x-2 &lt; x+6\ $ を<br>満たす整数 $x$ は全部で ウ 個ある。</p>
+<div class="ans">正解　⑨ 9</div>
+<div class="blk"><h3>着眼点</h3><p>前問で範囲は $-5 \leqq x &lt; 4$ と分かっている。あとは端を含むかどうかを見て整数を数え上げるだけである。</p></div>
+<div class="blk"><h3>解法</h3><p>$-5 \leqq x &lt; 4$ に入る整数は $-5,\ -4,\ -3,\ -2,\ -1,\ 0,\ 1,\ 2,\ 3$ の9個。よってウ＝9。</p></div>
+<div class="blk"><h3>検算</h3><p>個数は「大きい端 $-$ 小さい端 $+1$」で数えられる。ここでは含まれる整数の最小が $-5$、最大が $3$ なので $3-(-5)+1 = 9$。数え上げと一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$0$ を数え忘れる誤りが非常に多い。負の数から正の数へまたぐ範囲では、$0$ も1つの整数として必ず数えること。また $4$ は含まれない点にも注意する。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$a \leqq x \leqq b$ に含まれる整数の個数は $b-a+1$ 個（$a,\ b$ が整数のとき）。端が含まれない場合は、まず含まれる整数の最小と最大を確定させてからこの式を使うと間違えない。</p></div>
+</article>
+<article class="q" id="q4">
+<span class="no">問 4</span>
+<p class="stem">方程式 $|x-3| = 5$ の解は $x = 8$ と $x = -$エ である。</p>
+<div class="ans">正解　② 2</div>
+<div class="blk"><h3>着眼点</h3><p>絶対値が $5$ ということは、中身が $5$ か $-5$ のどちらかである。場合分けというより、2通りの方程式を並べて解けばよい。</p></div>
+<div class="blk"><h3>解法</h3><p>$x-3 = 5$ より $x = 8$。$x-3 = -5$ より $x = -2$。よって解は $x = 8,\ -2$ であり、エ＝2。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = -2$ のとき $|-2-3| = |-5| = 5$ で成り立つ。$x = 8$ のとき $|8-3| = 5$ で成り立つ。両方とも確かに解である。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$|x-3| = 5$ を $x-3 = 5$ だけで済ませ、負の側の解を落とす誤りが多い。絶対値の方程式は原則として解が2つ出ると身構えておくとよい。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$|x-a|$ は数直線上で $x$ と $a$ の距離を表す。この問題は「$3$ から距離 $5$ の点」を問うているので、$3$ の右に $5$ 進んだ $8$ と、左に $5$ 進んだ $-2$ が答えになる。図で捉えると場合分けが要らない。</p></div>
+</article>
+<article class="q" id="q5">
+<span class="no">問 5</span>
+<p class="stem">不等式 $|2x-1| &lt; 7$ を解くと $-3 &lt; x &lt;$ オ である。</p>
+<div class="ans">正解　④ 4</div>
+<div class="blk"><h3>着眼点</h3><p>絶対値が $7$ より小さいということは、中身が $-7$ と $7$ の間にあるということ。不等式を2つに分けず、はさむ形で一気に書ける。</p></div>
+<div class="blk"><h3>解法</h3><p>$|2x-1| &lt; 7$ は $-7 &lt; 2x-1 &lt; 7$ と同じ。各辺に $1$ を足して $-6 &lt; 2x &lt; 8$、$2$ で割って $-3 &lt; x &lt; 4$。よってオ＝4。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = 4$ のとき $|8-1| = 7$ でちょうど等号になり、範囲の外側の境界であることが確かめられる。範囲内の $x = 0$ では $|-1| = 1 &lt; 7$ で成り立つ。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$|A| &lt; c$ を $A &lt; c$ だけで処理して負側を落とす誤りが目立つ。逆に $|A| &gt; c$ のときは $A &gt; c$ または $A &lt; -c$ となり、はさむ形にはならない。不等号の向きで扱いが変わることを意識すること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$|A| &lt; c$（$c &gt; 0$）は $-c &lt; A &lt; c$、$|A| &gt; c$ は $A &lt; -c$ または $A &gt; c$。前者は1つの区間、後者は2つに分かれた範囲になる。数直線で「原点からの距離が $c$ より近いか遠いか」と考えると覚えやすい。</p></div>
+</article>
+<article class="q" id="q6">
+<span class="no">問 6</span>
+<p class="stem">不等式 $|x+1| \geqq 7$ を解くと $x \leqq -8$ または $x \geqq$ カ である。</p>
+<div class="ans">正解　⑥ 6</div>
+<div class="blk"><h3>着眼点</h3><p>絶対値が $7$ 以上ということは、中身が $7$ 以上か $-7$ 以下かのどちらかである。前問と違い、範囲は2つに分かれる。</p></div>
+<div class="blk"><h3>解法</h3><p>$x+1 \geqq 7$ より $x \geqq 6$。$x+1 \leqq -7$ より $x \leqq -8$。よって解は $x \leqq -8$ または $x \geqq 6$ であり、カ＝6。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = 6$ のとき $|7| = 7$ でちょうど等号。$x = -8$ のとき $|-7| = 7$ でこちらも等号。二つの境界がともに条件を満たすので、等号つきの範囲として正しい。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>2つの範囲を「かつ」で結んでしまう誤りがある。$x \leqq -8$ かつ $x \geqq 6$ を満たす数は存在しない。絶対値が大きいという条件は「原点から遠い」ことなので、答えは離れた2方向になる。「または」で結ぶこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$|x+1|$ は $x$ と $-1$ の距離である。この問題は「$-1$ から距離 $7$ 以上の点」を問うており、$-1$ の右に $7$ 進んだ $6$ 以上と、左に $7$ 進んだ $-8$ 以下が答えになる。中心が $-1$ である点に注意する。</p></div>
+</article>
+<article class="q" id="q7">
+<span class="no">問 7</span>
+<p class="stem">方程式 $|x-1|+|x-4| = 9$ の2つの解のうち、大きい方は $x =$ キ である。</p>
+<div class="ans">正解　⑦ 7</div>
+<div class="blk"><h3>着眼点</h3><p>絶対値が2つあるので、中身の符号が変わる $x = 1$ と $x = 4$ で場合を分ける。大きい方の解を問われているので、$x \geqq 4$ の場合から調べればよい。</p></div>
+<div class="blk"><h3>解法</h3><p>$x \geqq 4$ のとき両方の中身が $0$ 以上なので $(x-1)+(x-4) = 2x-5 = 9$ より $x = 7$。これは $x \geqq 4$ を満たすので解である。よってキ＝7。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = 7$ のとき $|7-1|+|7-4| = 6+3 = 9$ で成り立つ。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>場合分けして得た値が、その場合の範囲に入っているかを確かめずに答えとしてしまう誤りが多い。$1 \leqq x &lt; 4$ の場合は $(x-1)+(4-x) = 3$ となり $9$ にはならないので、この範囲に解は無い。範囲の確認は必ず行うこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$|x-1|+|x-4|$ は、数直線上で $x$ から $1$ までの距離と $4$ までの距離の和を表す。$1$ と $4$ の間では常に $3$ で一定、外側では離れるほど大きくなる。この見方をすると、和が $9$ になる点が $1$ と $4$ の外側に1つずつあることが図で分かる。</p></div>
+</article>
+<article class="q" id="q8">
+<span class="no">問 8</span>
+<p class="stem">方程式 $|x-1|+|x-4| = 9$ の2つの解のうち、小さい方は $x = -$ク である。</p>
+<div class="ans">正解　② 2</div>
+<div class="blk"><h3>着眼点</h3><p>小さい方の解を求めるので、両方の絶対値の中身が負になる $x &lt; 1$ の場合を調べる。</p></div>
+<div class="blk"><h3>解法</h3><p>$x &lt; 1$ のとき $x-1 &lt; 0$、$x-4 &lt; 0$ なので、$|x-1| = 1-x$、$|x-4| = 4-x$。したがって $(1-x)+(4-x) = 5-2x = 9$ より $-2x = 4$、$x = -2$。これは $x &lt; 1$ を満たすので解である。よってク＝2。</p></div>
+<div class="blk"><h3>検算</h3><p>$x = -2$ のとき $|-2-1|+|-2-4| = 3+6 = 9$ で成り立つ。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>中身が負のときに絶対値を外すと符号が反転する。$|x-1|$ を $x &lt; 1$ のとき $1-x$ とせず $x-1$ のままにしてしまう誤りが最も多い。「負のものにマイナスを掛けて正にする」と考えれば $-(x-1) = 1-x$ と導ける。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>2つの解 $x = 7$ と $x = -2$ は、$1$ と $4$ の中点である $2.5$ について対称な位置にある。$7-2.5 = 4.5$、$2.5-(-2) = 4.5$ で確かに等しい。距離の和という見方をすると、この対称性は当然の結果である。</p></div>
+</article>
+<article class="q" id="q9">
+<span class="no">問 9</span>
+<p class="stem">不等式 $|x-2| \leqq 3$ を満たす整数 $x$ は全部で ケ 個ある。</p>
+<div class="ans">正解　⑦ 7</div>
+<div class="blk"><h3>着眼点</h3><p>まず不等式を解いて $x$ の範囲を出し、そのうえで整数を数える。等号を含むので端の値も数に入る。</p></div>
+<div class="blk"><h3>解法</h3><p>$|x-2| \leqq 3$ は $-3 \leqq x-2 \leqq 3$ と同じ。各辺に $2$ を足して $-1 \leqq x \leqq 5$。この範囲の整数は $-1,\ 0,\ 1,\ 2,\ 3,\ 4,\ 5$ の7個なので ケ＝7。</p></div>
+<div class="blk"><h3>検算</h3><p>個数の式 $5-(-1)+1 = 7$ で一致する。両端の $x = -1$ と $x = 5$ はいずれも $|x-2| = 3$ となり、等号で条件を満たす。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>等号の有無で個数が変わる。もし $|x-2| &lt; 3$ なら $-1 &lt; x &lt; 5$ となり、整数は $0$ から $4$ までの5個に減る。不等号に等号が付いているかを最初に確認すること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$|x-a| \leqq r$ は「$a$ を中心とする半径 $r$ の範囲」を表す。中心 $2$、半径 $3$ なので、範囲の幅は $2r = 6$、含まれる整数は $6+1 = 7$ 個。中心が整数なら、この数え方がそのまま使える。</p></div>
+</article>
+<article class="q" id="q10">
+<span class="no">問 10</span>
+<p class="stem">不等式 $3 \leqq |x| \leqq 5$ を満たす整数 $x$ は全部で コ 個ある。</p>
+<div class="ans">正解　⑥ 6</div>
+<div class="blk"><h3>着眼点</h3><p>絶対値が $3$ 以上 $5$ 以下ということは、原点からの距離がその範囲にあるということ。正の側と負の側に同じだけ現れる。</p></div>
+<div class="blk"><h3>解法</h3><p>$x &gt; 0$ のときは $3 \leqq x \leqq 5$ より $x = 3,\ 4,\ 5$ の3個。$x &lt; 0$ のときは $3 \leqq -x \leqq 5$ より $-5 \leqq x \leqq -3$、すなわち $x = -3,\ -4,\ -5$ の3個。合わせて6個なので コ＝6。</p></div>
+<div class="blk"><h3>検算</h3><p>条件を満たす整数を書き出すと $-5,\ -4,\ -3,\ 3,\ 4,\ 5$ の6個。$x = 2$ は $|2| = 2$ で $3$ 未満、$x = 6$ は $|6| = 6$ で $5$ 超なのでいずれも外れる。境界の確認も合う。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>正の側だけを数えて3個と答える誤りが多い。絶対値の条件は原点について対称なので、$0$ が範囲に入らない限り個数は必ず偶数になる。答えが奇数になったら数え落としを疑うこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>この範囲は数直線上で、原点をはさんで左右に離れた2つの区間になる。$3 \leqq |x|$ は原点から遠い条件、$|x| \leqq 5$ は近い条件で、両方を満たす部分が残る。2つの条件の向きが逆である点が、この問題の骨組みである。</p></div>
+</article>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [{left: "$", right: "$", display: false}],
+    throwOnError: false
+  });
+});
+</script>
+</body>
+</html>

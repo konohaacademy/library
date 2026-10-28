@@ -1,0 +1,3422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>このはライブラリ</title>
+  <!-- ホーム画面に追加してアプリのように開く（2026-10-23・まなびのテラスの入口 manabi/ と同じ形）。
+       manifest.webmanifest・sw.js・icon-*.png。案内の帯は末尾の a2hs…。 -->
+  <meta name="theme-color" content="#4527a0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="このはライブラリ">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- pdf-lib（525KB）・marked・MathJax（1.1MB）は使う画面を開いたときに読む（_loadScript）。
+       生徒が最初に開く画面ではどれも使わないのに、以前は全部を先に読んでいた。 -->
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+      startup: { typeset: false }
+    };
+  </script>
+  <style>
+    :root {
+      /* ⚠ 教科の色は塾のサイト全部でそろえる（数学＝青／国語＝赤／理科＝緑／社会＝茶／英語＝ピンク）。
+         下の SUBJECT_COLORS・VD_SUBJECT_COLOR と同じ値にしておくこと。 */
+      --英語: #D81B60; --英語-light: #fce4ec;
+      --数学: #1565C0; --数学-light: #e3f2fd;
+      --国語: #C62828; --国語-light: #ffebee;
+      --理科: #2E7D32; --理科-light: #e8f5e9;
+      --社会: #6D4C41; --社会-light: #efebe9;
+      --header-h: 64px; --tab-h: 48px;
+      --border: #e2e8f0; --text: #1a202c; --text-sub: #718096;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,.08);
+      --shadow-hover: 0 6px 20px rgba(0,0,0,.14);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans JP', sans-serif; color: var(--text); background: #f0f4f8; min-height: 100vh; }
+
+    /* ヘッダー */
+    header {
+      position: sticky; top: 0; z-index: 100; height: var(--header-h);
+      background: linear-gradient(135deg, #4527a0 0%, #1565C0 100%);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.2);
+    }
+    .header-logo { color: #fff; font-size: 1.2rem; font-weight: 700; }
+    .header-logo span { opacity: .8; font-weight: 400; font-size: .9rem; margin-left: 8px; }
+    .btn-refresh {
+      background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+      color: #fff; border-radius: 8px; padding: 6px 14px; font-size: .85rem;
+      cursor: pointer; font-family: inherit; transition: background .2s;
+    }
+    .btn-refresh:hover { background: rgba(255,255,255,.3); }
+    .update-badge { background: #ff6f00; color: #fff; border-radius: 12px; padding: 3px 10px; font-size: .78rem; font-weight: 700; display: none; }
+
+    /* タブナビ */
+    /* stickyは外側の .tab-nav-wrap が持つ。内側に付けたままだと、
+       包んだ親の高さがタブバーと同じになって「貼り付く余地」が無くなり、
+       スクロールしても追従しなくなる。 */
+    .tab-nav-wrap {
+      position: sticky; top: var(--header-h); z-index: 90; background: #fff;
+      border-bottom: 2px solid var(--border);
+    }
+    .tab-nav {
+      background: #fff;
+      display: flex; padding: 0 24px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    /* 横に続きがあることを示す。スマホでは幅の都合でタブが2つしか
+       見えず、右にまだあると分からないため。 */
+    .tab-nav-wrap::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
+      pointer-events: none; background: linear-gradient(to right, rgba(255,255,255,0), #fff);
+    }
+    .tab-btn {
+      padding: 0 20px; height: var(--tab-h); border: none; background: none;
+      font-family: inherit; font-size: .9rem; font-weight: 500; color: var(--text-sub);
+      cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tab-btn.active { color: #4527a0; border-bottom-color: #4527a0; }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* タブパネル */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ===== ライブラリタブ ===== */
+    .filter-section {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 14px 24px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .filter-row:last-child { margin-bottom: 0; }
+    .filter-label { font-size: .78rem; color: var(--text-sub); font-weight: 500; min-width: 36px; }
+    .filter-btn {
+      border: 1.5px solid var(--border); background: #fff; color: var(--text);
+      border-radius: 20px; padding: 5px 14px; font-size: .85rem; cursor: pointer;
+      font-family: inherit; font-weight: 500; transition: all .15s;
+    }
+    .filter-btn:hover { border-color: #9e9e9e; }
+    .filter-btn.active { background: var(--active-color, #4527a0); border-color: var(--active-color, #4527a0); color: #fff; }
+    .search-input {
+      border: 1.5px solid var(--border); border-radius: 20px; padding: 6px 14px;
+      font-size: .88rem; font-family: inherit; outline: none; transition: border-color .15s; min-width: 200px;
+    }
+    .search-input:focus { border-color: #4527a0; }
+    .active-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 24px; background: #f8f9fc; border-bottom: 1px solid var(--border); }
+    .active-tags:empty { display: none; }
+    .tag-chip { display: flex; align-items: center; gap: 5px; background: #ede7f6; color: #4527a0; border-radius: 12px; padding: 3px 10px 3px 12px; font-size: .8rem; font-weight: 500; }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #7e57c2; padding: 0; line-height: 1; }
+
+    main { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
+    .stats-strip { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { background: #fff; border-radius: var(--radius); padding: 12px 20px; box-shadow: var(--shadow); text-align: center; min-width: 100px; }
+    .stat-num { font-size: 1.6rem; font-weight: 700; color: #4527a0; line-height: 1.1; }
+    .stat-label { font-size: .75rem; color: var(--text-sub); margin-top: 2px; }
+
+    #card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .entry-card {
+      background: #fff; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+      transition: transform .18s, box-shadow .18s; display: flex; flex-direction: column; gap: 10px;
+    }
+    .entry-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+    .card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { border-radius: 8px; padding: 3px 10px; font-size: .78rem; font-weight: 700; }
+    .badge-grade { background: #eceff1; color: #455a64; }
+    .card-unit { font-size: 1rem; font-weight: 700; line-height: 1.4; flex: 1; }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .card-thumb { width:100%; border-radius:6px; max-height:160px; object-fit:cover; object-position:top; display:block; background:#f0f0f0; }
+    .btn-action {
+      border: none; border-radius: 8px; padding: 7px 12px; font-size: .8rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: opacity .15s, transform .1s;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    }
+    .btn-action:hover { opacity: .85; transform: scale(1.03); }
+    .btn-pdf { background: #e8eaf6; color: #283593; }
+    .btn-ans { background: #e8f5e9; color: #1b5e20; }
+    .btn-yt  { background: #ffebee; color: #b71c1c; }
+    .card-updated { font-size: .72rem; color: #b0bec5; text-align: right; margin-top: auto; }
+
+    #loading { text-align: center; padding: 80px 0; color: var(--text-sub); }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #4527a0; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #empty-state { display: none; text-align: center; padding: 80px 0; color: var(--text-sub); }
+    #empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* PDFモーダル */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-inner { background: #fff; border-radius: var(--radius); width: 100%; max-width: 960px; height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: #fafafa; }
+    .modal-title { font-weight: 700; font-size: .95rem; }
+    .modal-close { background: #f1f3f4; border: none; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: .85rem; transition: background .15s; }
+    .modal-close:hover { background: #e0e0e0; }
+    #pdf-frame { flex: 1; width: 100%; border: none; }
+
+    /* 解説モーダル */
+    #exp-modal .modal-inner { max-width: 800px; height: 85vh; }
+    #exp-modal-body {
+      flex: 1; overflow-y: auto; padding: 24px 28px; line-height: 1.8;
+      font-size: .95rem;
+    }
+    #exp-modal-body h2 { font-size: 1rem; font-weight: 700; margin: 20px 0 8px; color: #4527a0; border-left: 4px solid #4527a0; padding-left: 10px; }
+    #exp-modal-body h2:first-child { margin-top: 0; }
+    #exp-modal-body p { margin: 8px 0; }
+    #exp-modal-body ol, #exp-modal-body ul { padding-left: 1.6em; margin: 8px 0; }
+    #exp-modal-body li { margin: 6px 0; }
+    #exp-modal-body code { background: #f5f5f5; border-radius: 4px; padding: 2px 6px; font-size: .88em; font-family: monospace; }
+
+    /* ==================================================
+       解説動画タブ
+       サムネイルを大きく出すのが要点。動画は文字より絵で探すため、
+       既存の .entry-card（文字だけ）をそのまま使うと目的の動画に
+       たどり着くのがかえって遅くなる。
+    ================================================== */
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .video-card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; cursor: pointer; display: flex; flex-direction: column;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .video-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.13); }
+    .video-thumb-wrap { position: relative; aspect-ratio: 16 / 9; background: #e9ecef; }
+    .video-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-play {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    }
+    /* 問題用紙のサムネイルは白地が多く、白い▶だけだと沈んで見えない。
+       半透明の黒い円を敷いて、どのサムネイルでも同じように見えるようにする。 */
+    .video-play::before {
+      content: '▶'; display: flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(0,0,0,.55); color: #fff; font-size: 1.3rem; padding-left: 4px;
+      transition: background .15s;
+    }
+    .video-card:hover .video-play::before { background: rgba(197,17,17,.9); }
+    .video-opt-tag {
+      position: absolute; top: 8px; left: 8px; background: rgba(69,39,160,.94); color: #fff;
+      font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+    }
+    .video-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .video-title { font-size: .9rem; font-weight: 500; line-height: 1.45; }
+    .video-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+    .video-meta .badge { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+    .video-attach { display: flex; flex-wrap: wrap; gap: 6px; }
+    .video-attach a { font-size: .74rem; padding: 3px 9px; border-radius: 6px; text-decoration: none; font-weight: 500; }
+
+    /* ログイン枠 */
+    .video-login {
+      max-width: 420px; margin: 0 auto; background: #fff; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 24px; text-align: center;
+    }
+    .video-login h3 { font-size: 1rem; margin-bottom: 6px; color: #4527a0; }
+    .video-login p { font-size: .84rem; color: var(--text-sub); line-height: 1.7; margin-bottom: 16px; }
+    .video-login input {
+      width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 8px;
+      font-family: inherit; font-size: 1rem; margin-bottom: 10px;
+    }
+    .video-login button {
+      width: 100%; padding: 12px; border: none; border-radius: 8px; background: #4527a0; color: #fff;
+      font-family: inherit; font-size: .95rem; font-weight: 700; cursor: pointer;
+    }
+    .video-login button:disabled { opacity: .55; cursor: default; }
+    .video-login .err { color: #c62828; font-size: .82rem; margin-top: 10px; min-height: 1.2em; }
+
+    /* ログイン状態の帯 */
+    .video-status {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 14px; border-radius: 8px; font-size: .84rem; margin-bottom: 14px;
+    }
+    .video-status.on  { background: #ede7f6; color: #4527a0; }
+    .video-status.off { background: #fff8e1; color: #8d6e00; }
+    .video-status button {
+      margin-left: auto; background: rgba(0,0,0,.07); border: none; border-radius: 6px;
+      padding: 5px 12px; cursor: pointer; font-family: inherit; font-size: .8rem;
+    }
+
+    /* 再生モーダル。iframeは16:9で固定し、下に資料を並べる */
+    #video-modal .modal-inner { max-width: 900px; height: auto; max-height: 92vh; }
+    #video-modal-body { overflow-y: auto; }
+    .video-player { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+    .video-player iframe { width: 100%; height: 100%; border: none; display: block; }
+    .video-detail { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .video-detail .video-meta .badge { font-size: .75rem; }
+    .video-detail-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .video-detail-links a {
+      padding: 9px 16px; border-radius: 8px; text-decoration: none; font-size: .86rem; font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .video-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      /* フィルタのボタンを折り返さず、行ごとに横スクロールさせる。
+         折り返すと4行で約1000pxになり、動画が1本も見えないまま
+         スクロールすることになる（実機375px幅で確認）。
+         #tab-video に限定しているのは、他のタブの見た目を変えないため。 */
+      #tab-video .filter-row { flex-wrap: nowrap; align-items: center; }
+      #tab-video .filter-label { flex: 0 0 auto; }
+      #tab-video .filter-row > div {
+        flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+        -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+      }
+      #tab-video .filter-row > div::-webkit-scrollbar { display: none; }
+      #tab-video .filter-btn { flex: 0 0 auto; }
+      #tab-video .search-input { min-width: 0; }
+      /* スマホは2列なのでサムネイルが小さい。再生ボタンが大きいままだと
+         サムネイルの中身（年度・教科・大問）が隠れて選べなくなる。 */
+      .video-play::before { width: 40px; height: 40px; font-size: 1rem; }
+      .video-title { font-size: .8rem; }
+      .video-body { padding: 9px 10px 11px; }
+      #video-modal .modal-inner { max-width: 100%; }
+    }
+    #exp-modal-body pre { background: #f5f5f5; border-radius: 8px; padding: 12px 16px; overflow-x: auto; margin: 10px 0; }
+    #exp-modal-body pre code { background: none; padding: 0; }
+    #exp-modal-body strong { font-weight: 700; }
+    #exp-modal-body .mjx-chtml { font-size: 1.1em !important; }
+    #exp-modal-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .9em; display: block; overflow-x: auto; }
+    #exp-modal-body th, #exp-modal-body td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; white-space: nowrap; }
+    #exp-modal-body th { background: #f3e5f5; color: #4527a0; font-weight: 700; }
+    #exp-modal-body tbody tr:nth-child(even) td { background: #fafafa; }
+
+    /* ===== テスト作成タブ ===== */
+    .test-builder { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .builder-section { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    .builder-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .mode-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .mode-tab { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; font-family: inherit; font-size: .9rem; font-weight: 500; text-align: center; transition: all .15s; }
+    .mode-tab.active { border-color: #4527a0; background: #ede7f6; color: #4527a0; }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+    .builder-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .builder-label { font-size: .85rem; font-weight: 500; min-width: 80px; color: var(--text-sub); }
+    .subject-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+    .subject-check { display: none; }
+    .subject-check-label {
+      padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 20px;
+      cursor: pointer; font-size: .85rem; font-weight: 500; transition: all .15s; user-select: none;
+    }
+    .subject-check:checked + .subject-check-label { color: #fff; border-color: currentColor; }
+    .count-select { border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .9rem; outline: none; }
+    .count-select:focus { border-color: #4527a0; }
+    .btn-generate {
+      width: 100%; padding: 13px; background: #4527a0; color: #fff; border: none; border-radius: var(--radius);
+      font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn-generate:hover { background: #311b92; }
+    .btn-generate:disabled { background: #b0bec5; cursor: not-allowed; }
+    .btn-load-checked {
+      width: 100%; padding: 13px; background: #1565C0; color: #fff; border: none; border-radius: var(--radius);
+      font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn-load-checked:hover { background: #0d47a1; }
+
+    /* 選択問題リスト */
+    .selected-list { list-style: none; }
+    .selected-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-bottom: 1px solid var(--border); font-size: .88rem;
+    }
+    .selected-item:last-child { border-bottom: none; }
+    .selected-num { width: 24px; height: 24px; background: #ede7f6; color: #4527a0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; flex-shrink: 0; }
+    .selected-info { flex: 1; }
+    .selected-grade-subj { font-size: .75rem; color: var(--text-sub); }
+    .selected-unit { font-weight: 600; }
+    .selected-remove { background: none; border: none; cursor: pointer; color: #ef9a9a; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; transition: background .15s; }
+    .selected-remove:hover { background: #ffebee; color: #c62828; }
+    .selected-empty { text-align: center; padding: 32px 0; color: var(--text-sub); font-size: .9rem; }
+
+    /* テスト名・アクション */
+    .test-name-input {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 14px;
+      font-family: inherit; font-size: .95rem; outline: none; margin-bottom: 12px;
+    }
+    .test-name-input:focus { border-color: #4527a0; }
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-make-pdf {
+      flex: 1; padding: 11px; border: none; border-radius: var(--radius);
+      font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; transition: background .2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-make-pdf.problems { background: #e8eaf6; color: #283593; }
+    .btn-make-pdf.problems:hover { background: #c5cae9; }
+    .btn-make-pdf.answers  { background: #e8f5e9; color: #1b5e20; }
+    .btn-make-pdf.answers:hover  { background: #c8e6c9; }
+    .btn-make-pdf.both     { background: #4527a0; color: #fff; }
+    .btn-make-pdf.both:hover { background: #311b92; }
+    .btn-save-test {
+      width: 100%; margin-top: 10px; padding: 11px; background: #ff6f00; color: #fff;
+      border: none; border-radius: var(--radius); font-family: inherit; font-size: .9rem;
+      font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn-save-test:hover { background: #e65100; }
+    .btn-save-test:disabled { background: #b0bec5; cursor: not-allowed; }
+    .progress-bar-wrap { background: #e2e8f0; border-radius: 8px; height: 8px; margin: 10px 0; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #4527a0; border-radius: 8px; transition: width .3s; width: 0%; }
+    .progress-label { font-size: .8rem; color: var(--text-sub); text-align: center; }
+
+    /* ===== テスト管理タブ ===== */
+    .test-manager { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .test-card {
+      background: #fff; border-radius: var(--radius); padding: 16px 20px;
+      box-shadow: var(--shadow); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .test-card-info { flex: 1; min-width: 200px; }
+    .test-card-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .test-card-meta { font-size: .78rem; color: var(--text-sub); }
+    .test-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-redownload {
+      padding: 7px 14px; border: none; border-radius: 8px; font-family: inherit;
+      font-size: .82rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .btn-redownload:hover { opacity: .8; }
+    .btn-redownload.problems { background: #e8eaf6; color: #283593; }
+    .btn-redownload.answers  { background: #e8f5e9; color: #1b5e20; }
+    .btn-delete-test { padding: 7px 12px; border: 1px solid #ef9a9a; border-radius: 8px; background: #fff; color: #c62828; font-family: inherit; font-size: .82rem; cursor: pointer; transition: background .15s; }
+    .btn-delete-test:hover { background: #ffebee; }
+
+    /* トースト */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; border-radius: 8px; padding: 12px 20px; font-size: .9rem; z-index: 300; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+    .toast.success { background: #2e7d32; }
+    .toast.error   { background: #c62828; }
+
+    footer { text-align: center; padding: 16px; font-size: .8rem; color: var(--text-sub); border-top: 1px solid var(--border); background: #fff; margin-top: 40px; }
+
+    /* カードチェックボックス */
+    .entry-card { position: relative; }
+    .card-check { position: absolute; top: 10px; right: 10px; cursor: pointer; }
+    .card-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #4527a0; }
+    .entry-card.is-checked { border-left: 4px solid #4527a0; padding-left: 14px; }
+
+    /* YouTube編集（講師モード） */
+    .btn-yt-edit {
+      border: none; border-radius: 8px; padding: 7px 10px; font-size: .78rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; background: #fff3e0; color: #bf360c;
+      transition: background .15s; white-space: nowrap;
+    }
+    .btn-yt-edit:hover { background: #ffe0b2; }
+    .yt-edit-form {
+      display: none; margin-top: 8px; padding: 10px; background: #fff8e1;
+      border-radius: 8px; border: 1px solid #ffe082;
+    }
+    .yt-edit-form.open { display: block; }
+    .yt-edit-input {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 6px 10px;
+      font-size: .82rem; font-family: inherit; outline: none; margin-bottom: 6px;
+    }
+    .yt-edit-input:focus { border-color: #e65100; }
+    .yt-edit-actions { display: flex; gap: 6px; }
+    .yt-edit-save { flex:1; background:#e65100; color:#fff; border:none; border-radius:6px; padding:6px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .yt-edit-save:hover { background:#bf360c; }
+    .yt-edit-clear { background:#ffebee; color:#c62828; border:none; border-radius:6px; padding:6px 10px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .yt-edit-clear:hover { background:#ffcdd2; }
+    .yt-edit-cancel { background:#f5f5f5; color:#555; border:none; border-radius:6px; padding:6px 10px; font-size:.8rem; cursor:pointer; font-family:inherit; }
+
+    /* フローティングチェックバー */
+    #check-bar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #4527a0; color: #fff; border-radius: 30px;
+      padding: 10px 20px; display: none; align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.25); z-index: 150; white-space: nowrap;
+    }
+    #check-bar-count { font-weight: 700; font-size: .9rem; }
+    .check-bar-btn {
+      background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4);
+      color: #fff; border-radius: 20px; padding: 5px 14px; font-size: .85rem;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: background .15s;
+    }
+    .check-bar-btn:hover { background: rgba(255,255,255,.35); }
+    .check-bar-btn.clear { background: transparent; border-color: rgba(255,255,255,.25); font-weight: 400; }
+    #koukou-check-bar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #2E7D32; color: #fff; border-radius: 30px;
+      padding: 10px 20px; display: none; align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.25); z-index: 150; white-space: nowrap;
+    }
+    /* 過去問アーカイブ（定期テスト・英検・大学入試）共通のチェックバー */
+    .floating-check-bar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      color: #fff; border-radius: 30px;
+      padding: 10px 20px; display: none; align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.25); z-index: 150; white-space: nowrap;
+    }
+    #koukou-text-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; display: none;
+      align-items: center; justify-content: center;
+    }
+    #koukou-text-modal {
+      background: #fff; border-radius: 12px; padding: 24px; width: min(560px, 90vw);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    #koukou-text-output {
+      width: 100%; height: 280px; font-family: monospace; font-size: .88rem;
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      resize: vertical; background: #fafafa; box-sizing: border-box;
+    }
+
+    /* 大学入試過去問 — 難易度★表示 */
+    .star-rating { position: relative; display: inline-block; font-size: .95rem; line-height: 1; white-space: nowrap; letter-spacing: 1px; }
+    .star-bg { color: #e0e0e0; }
+    .star-fg { position: absolute; top: 0; left: 0; overflow: hidden; color: #f9a825; white-space: nowrap; }
+
+    /* 中学生単元テスト — 単元名タグ */
+    .card-unit-tag {
+      display: inline-block;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: .82rem;
+      color: var(--text);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* ===== 過去問タブ ===== */
+    .archive-sub-nav {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; gap: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+    .archive-sub-btn {
+      padding: 10px 18px; border: none; background: none;
+      font-family: inherit; font-size: .88rem; font-weight: 500; color: var(--text-sub);
+      cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .archive-sub-btn.active { color: #4527a0; border-bottom-color: #4527a0; }
+    .archive-sub-btn:hover:not(.active) { color: var(--text); }
+    .archive-sub-panel { display: none; }
+    .archive-sub-panel.active { display: block; }
+    .archive-filter {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 14px 24px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .archive-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    /* ===== 三重公立高校入試データベース ===== */
+    .koritsu-table-wrap { overflow-x: auto; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .koritsu-table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 820px; }
+    .koritsu-table th, .koritsu-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .koritsu-table th { background: #f8f9fc; color: var(--text-sub); font-weight: 700; font-size: .78rem; cursor: pointer; user-select: none; }
+    .koritsu-table th:hover { color: #00838F; }
+    .koritsu-table th .sort-arrow { opacity: .5; margin-left: 3px; color: #00838F; }
+    .koritsu-table tbody tr:hover { background: #f8f9fc; }
+    .koritsu-border-cell { display: flex; flex-direction: column; gap: 4px; min-width: 210px; white-space: normal; }
+    .koritsu-bar-track { position: relative; width: 150px; height: 8px; border-radius: 4px; background: #eceff1; overflow: hidden; }
+    .koritsu-bar-seg { position: absolute; top: 0; bottom: 0; }
+    .koritsu-bar-fail { background: #ef9a9a; }
+    .koritsu-bar-pass { background: #a5d6a7; }
+    .koritsu-bar-overlap { background: #ffb74d; }
+    .koritsu-bar-nums { font-size: .74rem; color: var(--text-sub); display: flex; gap: 8px; flex-wrap: wrap; }
+    .koritsu-bar-nums b { color: var(--text); }
+    .koritsu-reversal-note { color: #e65100; font-weight: 700; font-size: .72rem; }
+    .koritsu-count { font-size: .8rem; color: var(--text-sub); }
+    .koritsu-table tr.kr-row { cursor: pointer; }
+    .koritsu-table td.kr-expand-cell { text-align: center; width: 30px; color: var(--text-sub); font-size: .7rem; }
+    .koritsu-table tr.kr-row.active { background: #f0f7f8; }
+    .koritsu-detail-row td { background: #fafbfc; white-space: normal; padding: 18px 22px; cursor: default; }
+    .kr-detail-loading { color: var(--text-sub); font-size: .85rem; }
+    .kr-detail-grid { display: flex; gap: 40px; flex-wrap: wrap; }
+    .kr-hist-title { font-size: .78rem; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; }
+    .kr-hist-chart { display: flex; align-items: flex-end; gap: 5px; }
+    .kr-hist-track { width: 26px; height: 90px; display: flex; flex-direction: column; justify-content: flex-end; }
+    .kr-hist-bar { width: 100%; border-radius: 2px 2px 0 0; overflow: hidden; min-height: 1px; }
+    .kr-hist-fail { background: #ef5350; }
+    .kr-hist-pass { background: #66bb6a; }
+    .kr-hist-label { font-size: .6rem; color: var(--text-sub); margin-top: 4px; text-align: center; width: 26px; }
+    .kr-hist-legend { display: flex; gap: 14px; font-size: .72rem; color: var(--text-sub); margin: 8px 0 14px; }
+    .kr-hist-legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .kr-legend-pass::before { background: #66bb6a; }
+    .kr-legend-fail::before { background: #ef5350; }
+    .kr-detail-sub { font-size: .78rem; color: var(--text-sub); margin-bottom: 6px; }
+    .kr-chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; max-height: 160px; overflow-y: auto; }
+    .kr-chip { font-size: .72rem; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .kr-chip-pass { background: #e8f5e9; color: #2e7d32; }
+    .kr-chip-fail { background: #fdecea; color: #c62828; }
+
+    @media (max-width: 640px) {
+      header { padding: 0 16px; }
+      .filter-section { padding: 12px 16px 10px; }
+      .active-tags { padding: 8px 16px; }
+      main { padding: 16px 16px 32px; }
+      #card-grid { grid-template-columns: 1fr; }
+      .test-builder, .test-manager { padding: 16px; }
+      .action-row { flex-direction: column; }
+      .archive-card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">📚 このはライブラリ<span>問題・解答・解説動画</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="update-badge" id="update-badge">🆕 更新あり</span>
+    <button class="btn-refresh" onclick="init(true)">↺ 更新</button>
+  </div>
+</header>
+
+<!-- タブナビ -->
+<div class="tab-nav-wrap">
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('library')">📚 中学生単元テスト</button>
+  <button class="tab-btn" onclick="switchTab('koukou')">📚 高校生単元テスト</button>
+  <button class="tab-btn" onclick="switchTab('video')">🎬 解説動画</button>
+  <button class="tab-btn" onclick="switchTab('kakomon')">📋 定期テスト過去問</button>
+  <button class="tab-btn" onclick="switchTab('eiken')">🏆 英検過去問</button>
+  <button class="tab-btn" onclick="switchTab('daigaku')">🎓 大学入試過去問</button>
+  <button class="tab-btn" onclick="switchTab('moshi')">📝 三重県模試過去問</button>
+  <button class="tab-btn" onclick="switchTab('koritsu')">🏫 三重公立高校入試DB</button>
+  <button class="tab-btn teacher-tab" onclick="switchTab('builder')" style="display:none">✏️ テスト作成</button>
+  <button class="tab-btn teacher-tab" onclick="switchTab('manager')" style="display:none">📋 テスト管理</button>
+</div>
+</div>
+
+<!-- ========== ライブラリタブ ========== -->
+<div class="tab-panel active" id="tab-library">
+  <div class="filter-section">
+    <div class="filter-row">
+      <span class="filter-label">学年</span>
+      <button class="filter-btn active" style="--active-color:#4527a0" onclick="setGrade('')" id="grade-all">全学年</button>
+      <button class="filter-btn" style="--active-color:#4527a0" onclick="setGrade('中1')" id="grade-中1">中1</button>
+      <button class="filter-btn" style="--active-color:#4527a0" onclick="setGrade('中2')" id="grade-中2">中2</button>
+      <button class="filter-btn" style="--active-color:#4527a0" onclick="setGrade('中3')" id="grade-中3">中3</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">教科</span>
+      <button class="filter-btn active" style="--active-color:#4527a0" onclick="setSubject('')" id="subj-all">全教科</button>
+      <button class="filter-btn" style="--active-color:var(--国語)" onclick="setSubject('国語')" id="subj-国語">国語</button>
+      <button class="filter-btn" style="--active-color:var(--数学)" onclick="setSubject('数学')" id="subj-数学">数学</button>
+      <button class="filter-btn" style="--active-color:var(--英語)" onclick="setSubject('英語')" id="subj-英語">英語</button>
+      <button class="filter-btn" style="--active-color:var(--理科)" onclick="setSubject('理科')" id="subj-理科">理科</button>
+      <button class="filter-btn" style="--active-color:var(--社会)" onclick="setSubject('社会')" id="subj-社会">社会</button>
+      <button class="filter-btn" style="--active-color:var(--社会);font-size:.8rem" onclick="setSubject('社会(地理)')" id="subj-社会(地理)">社会(地理)</button>
+      <button class="filter-btn" style="--active-color:var(--社会);font-size:.8rem" onclick="setSubject('社会(歴史)')" id="subj-社会(歴史)">社会(歴史)</button>
+      <button class="filter-btn" style="--active-color:var(--社会);font-size:.8rem" onclick="setSubject('社会(公民)')" id="subj-社会(公民)">社会(公民)</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">種別</span>
+      <button class="filter-btn active" style="--active-color:#4527a0" onclick="setType('')" id="type-all">全て</button>
+      <button class="filter-btn" style="--active-color:#37474f" onclick="setType('講義動画')" id="type-講義動画">🎥 講義動画</button>
+      <button class="filter-btn" style="--active-color:#b71c1c" onclick="setType('YouTube付き')" id="type-YouTube付き">▶ YouTube付き</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">検索</span>
+      <input class="search-input" type="text" id="search-input" placeholder="単元名で検索..." oninput="onSearchInput(this.value)">
+    </div>
+  </div>
+  <div class="active-tags" id="active-tags"></div>
+  <main>
+    <div class="stats-strip" id="stats-strip" style="display:none">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">全単元</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-filtered">0</div><div class="stat-label">表示中</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-with-yt">0</div><div class="stat-label">YouTube付き</div></div>
+    </div>
+    <div id="loading"><div class="spinner"></div><p>データを読み込み中...</p></div>
+    <div id="card-grid" style="display:none"></div>
+    <div id="empty-state"><div class="empty-icon">🔍</div><p>条件に一致する単元が見つかりません</p></div>
+  </main>
+</div>
+
+<!-- ========== テスト作成タブ ========== -->
+<div class="tab-panel" id="tab-builder">
+  <div class="test-builder">
+
+    <!-- モード選択 -->
+    <div class="builder-section">
+      <h3>📋 問題の選び方</h3>
+      <div class="mode-tabs">
+        <button class="mode-tab active" onclick="switchMode('random')">🎲 ランダム生成</button>
+        <button class="mode-tab" onclick="switchMode('checked')">☑️ チェック選択</button>
+      </div>
+
+      <!-- ランダムモード -->
+      <div class="mode-panel active" id="mode-random">
+        <div class="builder-row">
+          <span class="builder-label">学年</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="filter-btn active" style="--active-color:#4527a0;font-size:.82rem" onclick="setBGrade('')" id="bg-all">全学年</button>
+            <button class="filter-btn" style="--active-color:#4527a0;font-size:.82rem" onclick="setBGrade('中1')" id="bg-中1">中1</button>
+            <button class="filter-btn" style="--active-color:#4527a0;font-size:.82rem" onclick="setBGrade('中2')" id="bg-中2">中2</button>
+            <button class="filter-btn" style="--active-color:#4527a0;font-size:.82rem" onclick="setBGrade('中3')" id="bg-中3">中3</button>
+          </div>
+        </div>
+        <div class="builder-row">
+          <span class="builder-label">教科</span>
+          <div class="subject-checks">
+            <input class="subject-check" type="checkbox" id="sc-国語" value="国語" checked>
+            <label class="subject-check-label" for="sc-国語" style="color:var(--国語)">国語</label>
+            <input class="subject-check" type="checkbox" id="sc-数学" value="数学" checked>
+            <label class="subject-check-label" for="sc-数学" style="color:var(--数学)">数学</label>
+            <input class="subject-check" type="checkbox" id="sc-社会" value="社会" checked>
+            <label class="subject-check-label" for="sc-社会" style="color:var(--社会)">社会</label>
+            <input class="subject-check" type="checkbox" id="sc-英語" value="英語" checked>
+            <label class="subject-check-label" for="sc-英語" style="color:var(--英語)">英語</label>
+            <input class="subject-check" type="checkbox" id="sc-理科" value="理科" checked>
+            <label class="subject-check-label" for="sc-理科" style="color:var(--理科)">理科</label>
+          </div>
+        </div>
+        <div class="builder-row">
+          <span class="builder-label">問題数</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="count-select" id="count-per-subj">
+              <option value="1">教科あたり 1問</option>
+              <option value="2" selected>教科あたり 2問</option>
+              <option value="3">教科あたり 3問</option>
+              <option value="5">教科あたり 5問</option>
+              <option value="0">教科あたり 全問</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateRandom()">🎲 ランダムに選ぶ</button>
+      </div>
+
+      <!-- チェックモード -->
+      <div class="mode-panel" id="mode-checked">
+        <p style="font-size:.88rem;color:var(--text-sub);margin-bottom:12px">
+          ライブラリのカードにチェックを入れた問題を読み込みます。
+        </p>
+        <button class="btn-load-checked" onclick="loadSiteChecked()" style="margin-bottom:16px">☑️ カードのチェックを読み込む</button>
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:14px">
+        <p style="font-size:.82rem;color:var(--text-sub);margin-bottom:10px">スプレッドシートのI列チェックから読み込む</p>
+        <button class="btn-load-checked" onclick="loadSheetChecked()" style="background:#1565C0">📊 スプレッドシートから読み込む</button>
+      </div>
+    </div>
+
+    <!-- 選択された問題リスト -->
+    <div class="builder-section">
+      <h3>📝 選択された問題 <span id="selected-count" style="color:var(--text-sub);font-weight:400;font-size:.88rem">(0件)</span></h3>
+      <ul class="selected-list" id="selected-list">
+        <li class="selected-empty">上の設定で問題を選んでください</li>
+      </ul>
+    </div>
+
+    <!-- テスト名とダウンロード -->
+    <div class="builder-section">
+      <h3>💾 冊子を作成・保存</h3>
+      <input class="test-name-input" type="text" id="test-name-input" placeholder="テスト名（例: 夏期講習テスト①）">
+      <div class="builder-row" id="page-limit-row" style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text-sub);cursor:pointer">
+          <input type="checkbox" id="use-page-limit" style="width:16px;height:16px;accent-color:#4527a0"
+                 onchange="document.getElementById('page-limit-config').style.display=this.checked?'inline-flex':'none'">
+          問題PDFのページ数を制限する（解答は全ページ）
+        </label>
+        <span id="page-limit-config" style="display:none;align-items:center;gap:6px;margin-left:24px;margin-top:6px;font-size:.85rem;flex-wrap:wrap">
+          1エントリあたり
+          <select id="page-extract-mode" style="border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.85rem;font-family:inherit"
+                  onchange="document.getElementById('mode-random-inputs').style.display=this.value==='random'?'inline-flex':'none';document.getElementById('mode-range-inputs').style.display=this.value==='range'?'inline-flex':'none'">
+            <option value="random">ランダム</option>
+            <option value="range">ページ範囲指定</option>
+          </select>
+          <span id="mode-random-inputs" style="display:inline-flex;align-items:center;gap:4px">
+            <input type="number" id="pages-per-entry" min="1" max="99" value="1"
+                   style="width:52px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.9rem;text-align:center">
+            ページ
+          </span>
+          <span id="mode-range-inputs" style="display:none;align-items:center;gap:4px">
+            <input type="number" id="range-start" min="1" max="99" value="1"
+                   style="width:52px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.9rem;text-align:center">
+            ページ目から
+            <input type="number" id="range-count" min="1" max="99" value="2"
+                   style="width:52px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.9rem;text-align:center">
+            ページ
+          </span>
+        </span>
+      </div>
+      <div class="progress-bar-wrap" id="progress-wrap" style="display:none">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-label" id="progress-label"></p>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;color:var(--text-sub);cursor:pointer">
+        <input type="checkbox" id="no-save-check" style="width:16px;height:16px;accent-color:#c62828">
+        このテストは保存しない
+      </label>
+      <div class="action-row">
+        <button class="btn-make-pdf both" id="btn-make-both" onclick="makePdfBoth()">📥 一括作成（問題＋解答）</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== テスト管理タブ ========== -->
+<div class="tab-panel" id="tab-manager">
+  <div class="test-manager">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:1.1rem;font-weight:700">保存済みテスト</h2>
+      <button class="btn-refresh" style="background:#4527a0;border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer" onclick="loadTests()">↺ 更新</button>
+    </div>
+    <div id="test-list"><div id="loading-tests" style="text-align:center;padding:40px;color:var(--text-sub)">読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- ========== 高校生単元テストタブ ========== -->
+<div class="tab-panel" id="tab-koukou">
+  <div class="filter-section">
+    <div class="filter-row" id="kk-grade-row"></div>
+    <div class="filter-row" id="kk-subj-row"></div>
+  </div>
+  <div class="archive-card-grid" id="koukou-grid"></div>
+</div>
+
+<!-- ========== 定期テスト過去問タブ ========== -->
+<div class="tab-panel" id="tab-kakomon">
+  <div class="archive-filter">
+    <div class="filter-row">
+      <span class="filter-label">学校</span>
+      <div id="kak-school-filters" style="display:flex;flex-wrap:wrap;gap:8px">
+        <span style="color:var(--text-sub);font-size:.85rem">読み込み中...</span>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">教科</span>
+      <div id="kak-subject-filters" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">学年</span>
+      <div id="kak-grade-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#4527a0" onclick="setKakFilter('grade','')" id="kak-grade-all" data-value="">全学年</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">種類</span>
+      <div id="kak-type-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#4a148c" onclick="setKakFilter('testType','')" id="kak-type-all" data-value="">全種類</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">年度</span>
+      <div id="kak-year-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#e65100" onclick="setKakFilter('year','')" id="kak-year-all" data-value="">全年度</button>
+      </div>
+    </div>
+  </div>
+  <main><div id="kakomon-grid" class="archive-card-grid" style="padding-top:0"></div></main>
+</div>
+
+<!-- ========== 英検過去問タブ ========== -->
+<div class="tab-panel" id="tab-eiken">
+  <div class="archive-filter">
+    <div class="filter-row">
+      <span class="filter-label">級</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#1B5E20" onclick="setEiFilter('level','')" id="ei-level-all">全級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','1級')" id="ei-level-1">1級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','準1級')" id="ei-level-j1">準1級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','2級')" id="ei-level-2">2級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','準2級')" id="ei-level-j2">準2級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','3級')" id="ei-level-3">3級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','4級')" id="ei-level-4">4級</button>
+        <button class="filter-btn" style="--active-color:#1B5E20" onclick="setEiFilter('level','5級')" id="ei-level-5">5級</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">年度</span>
+      <select id="ei-year-select" onchange="setEiFilter('year',this.value)" class="count-select">
+        <option value="">全年度</option>
+      </select>
+    </div>
+  </div>
+  <main><div id="eiken-grid" class="archive-card-grid" style="padding-top:0"></div></main>
+</div>
+
+<!-- ========== 大学入試過去問タブ ========== -->
+<div class="tab-panel" id="tab-daigaku">
+  <div class="archive-filter">
+    <div class="filter-row">
+      <span class="filter-label">教科</span>
+      <div id="dg-subj-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#4527a0" onclick="setDgFilter('subject','')" id="dg-subj-all">全教科</button>
+      </div>
+    </div>
+    <!-- 分野ボタンは教科の絞り込みに連動して作り直す（_buildDaigakuTopics）。
+         全教科ぶんを並べると「数列」と「鎌倉時代」が同じ行に混ざるため。 -->
+    <div class="filter-row" id="dg-topic-row" style="display:none">
+      <span class="filter-label">分野</span>
+      <div id="dg-topic-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#00695c" onclick="setDgFilter('topic','')" id="dg-topic-all" data-value="">全分野</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">年度</span>
+      <select id="dg-year-select" onchange="setDgFilter('year',this.value)" class="count-select">
+        <option value="">全年度</option>
+      </select>
+      <input type="text" class="search-input" id="dg-keyword-input" placeholder="大学名で検索..." oninput="setDgFilter('keyword',this.value)" style="margin-left:8px">
+      <label style="margin-left:8px;display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--text-sub);cursor:pointer">
+        <input type="checkbox" id="dg-expl-only" onchange="setDgFilter('explOnly',this.checked)">🤖 解説ありだけ
+      </label>
+    </div>
+  </div>
+  <main><div id="daigaku-grid" class="archive-card-grid" style="padding-top:0"></div></main>
+</div>
+
+<!-- ========== 三重県模試過去問タブ ========== -->
+<div class="tab-panel" id="tab-moshi">
+  <div class="archive-filter">
+    <div class="filter-row">
+      <span class="filter-label">学年</span>
+      <div id="ms-grade-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#00838F" onclick="setMsFilter('grade','')" id="ms-grade-all" data-value="">全学年</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">教科</span>
+      <div id="ms-subject-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#1565C0" onclick="setMsFilter('subject','')" id="ms-subject-all" data-value="">全教科</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">回</span>
+      <div id="ms-round-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#4a148c" onclick="setMsFilter('round','')" id="ms-round-all" data-value="">全回</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">年度</span>
+      <div id="ms-year-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="filter-btn active" style="--active-color:#e65100" onclick="setMsFilter('year','')" id="ms-year-all" data-value="">全年度</button>
+      </div>
+    </div>
+  </div>
+  <main><div id="moshi-grid" class="archive-card-grid" style="padding-top:0"></div></main>
+</div>
+
+<!-- ========== 三重公立高校入試データベースタブ ========== -->
+<div class="tab-panel" id="tab-koritsu">
+  <div class="archive-filter">
+    <div class="filter-row">
+      <span class="filter-label">学校</span>
+      <input type="text" class="search-input" id="kr-school-input" list="kr-school-list" placeholder="学校名で検索・選択..." oninput="setKrFilter('school', this.value)">
+      <datalist id="kr-school-list"></datalist>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">学科</span>
+      <div id="kr-dept-container" style="display:flex;flex-wrap:wrap;gap:8px">
+        <span style="color:var(--text-sub);font-size:.85rem">読み込み中...</span>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">年度</span>
+      <div id="kr-year-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">学力検査点</span>
+      <input type="number" class="count-select" id="kr-score-min" placeholder="下限" style="width:80px" oninput="setKrFilter('scoreMin', this.value)">
+      <span style="color:var(--text-sub)">〜</span>
+      <input type="number" class="count-select" id="kr-score-max" placeholder="上限" style="width:80px" oninput="setKrFilter('scoreMax', this.value)">
+      <span class="filter-label" style="margin-left:16px;min-width:auto">内申点</span>
+      <input type="number" class="count-select" id="kr-naishin-min" placeholder="下限" style="width:80px" oninput="setKrFilter('naishinMin', this.value)">
+      <span style="color:var(--text-sub)">〜</span>
+      <input type="number" class="count-select" id="kr-naishin-max" placeholder="上限" style="width:80px" oninput="setKrFilter('naishinMax', this.value)">
+    </div>
+  </div>
+  <main><div id="koritsu-table-wrap" class="koritsu-table-wrap"></div></main>
+</div>
+
+<!-- ========== 解説動画タブ ========== -->
+<div class="tab-panel" id="tab-video">
+  <div style="padding:16px 20px 0">
+    <!-- ログイン状態の帯。オプション動画が何本見えているかをここで示す -->
+    <div class="video-status off" id="vd-status" style="display:none"></div>
+
+    <div class="archive-filter">
+      <div class="filter-row">
+        <span class="filter-label">さがす</span>
+        <input type="text" class="search-input" id="vd-search"
+               placeholder="単元名・タイトルで検索（例: イオン、世界地理、現在完了）"
+               oninput="setVdFilter('q', this.value)">
+      </div>
+      <!-- シリーズ（再生リストの括り）。「三重前期選抜」のように年度でも教科でも
+           ない括りは、先生が再生リストにまとめたものをそのまま出すのが確実。
+           該当する動画が1本も無いときは行ごと出さない（スマホでは1行が
+           約40px使うので、空振りするボタンを並べると動画が画面から押し出される）。 -->
+      <div class="filter-row" id="vd-series-row" style="display:none">
+        <span class="filter-label">シリーズ</span>
+        <div id="vd-series-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">種別</span>
+        <div id="vd-kind-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">教科</span>
+        <div id="vd-subject-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <!-- 単元。教科を選んだときだけ出す。全教科ぶん並べると30個を超え、
+           スマホでは横にスクロールしても目当てが見つからない。
+           年度ごとにタイトルの書き方が違う（「イオンと電池」「イオン・中和」）ので、
+           ボタンはタイトルの文字ではなく、過去問マスターの大問単元で作る。 -->
+      <div class="filter-row" id="vd-topic-row" style="display:none">
+        <span class="filter-label">単元</span>
+        <div id="vd-topic-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">学年</span>
+        <div id="vd-grade-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">年度</span>
+        <div id="vd-year-container" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div id="vd-grid" class="video-grid">
+      <p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">読み込み中...</p>
+    </div>
+
+    <!-- ログインしていないときだけ、一覧の下に出す -->
+    <div id="vd-login-wrap" style="display:none;margin-top:28px">
+      <div class="video-login">
+        <h3>🔒 オプション動画を見る</h3>
+        <p>動画オプションをご契約の方は、お渡ししたログインIDとパスワードを入れてください。<br>
+           分からないときは塾までご連絡ください。</p>
+        <input type="text" id="vd-login-id" placeholder="ログインID"
+               autocomplete="username" autocapitalize="none" spellcheck="false">
+        <input type="password" id="vd-login-pw" placeholder="パスワード"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter')doVideoLogin()">
+        <button id="vd-login-btn" onclick="doVideoLogin()">ログイン</button>
+        <div class="err" id="vd-login-err"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 動画再生モーダル -->
+<div class="modal-overlay" id="video-modal" onclick="onVideoModalOverlayClick(event)">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <span class="modal-title" id="video-modal-title">動画</span>
+      <button class="modal-close" onclick="closeVideoModal()">✕ 閉じる</button>
+    </div>
+    <div id="video-modal-body"></div>
+  </div>
+</div>
+
+<!-- PDFモーダル -->
+<div class="modal-overlay" id="pdf-modal" onclick="onModalOverlayClick(event)">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">PDF</span>
+      <button class="modal-close" onclick="closePdfModal()">✕ 閉じる</button>
+    </div>
+    <iframe id="pdf-frame" src="" allowfullscreen></iframe>
+  </div>
+</div>
+
+<!-- 解説モーダル -->
+<div class="modal-overlay" id="exp-modal" onclick="onExpModalOverlayClick(event)">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <span class="modal-title" id="exp-modal-title">解説</span>
+      <button class="modal-close" onclick="closeExpModal()">✕ 閉じる</button>
+    </div>
+    <div id="exp-modal-body"></div>
+  </div>
+</div>
+
+<!-- カードチェックフローティングバー -->
+<div id="check-bar">
+  <span id="check-bar-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="loadSiteChecked()">✏️ テスト作成に使う</button>
+  <button class="check-bar-btn clear" onclick="clearSiteChecked()">✕ 解除</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 高校生チェックフローティングバー -->
+<div id="koukou-check-bar">
+  <span id="koukou-check-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="showKoukouText()">📋 テキスト発行</button>
+  <button class="check-bar-btn clear" onclick="clearKoukouChecked()">✕ 解除</button>
+</div>
+
+<!-- 過去問アーカイブ（定期テスト・英検・大学入試）テスト作成フローティングバー -->
+<div id="kak-check-bar" class="floating-check-bar" style="background:#4527a0">
+  <span id="kak-check-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="makeArchivePdf('kakomon')">📥 PDFを結合して作成</button>
+  <button class="check-bar-btn clear" onclick="clearArchiveChecked('kakomon')">✕ 解除</button>
+</div>
+<div id="eiken-check-bar" class="floating-check-bar" style="background:#1B5E20">
+  <span id="eiken-check-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="makeArchivePdf('eiken')">📥 PDFを結合して作成</button>
+  <button class="check-bar-btn clear" onclick="clearArchiveChecked('eiken')">✕ 解除</button>
+</div>
+<div id="daigaku-check-bar" class="floating-check-bar" style="background:#4A148C">
+  <span id="daigaku-check-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="makeArchivePdf('daigaku')">📥 PDFを結合して作成</button>
+  <button class="check-bar-btn clear" onclick="clearArchiveChecked('daigaku')">✕ 解除</button>
+</div>
+<div id="moshi-check-bar" class="floating-check-bar" style="background:#00838F">
+  <span id="moshi-check-count">0件選択中</span>
+  <button class="check-bar-btn" onclick="makeArchivePdf('moshi')">📥 PDFを結合して作成</button>
+  <button class="check-bar-btn clear" onclick="clearArchiveChecked('moshi')">✕ 解除</button>
+</div>
+
+<!-- 高校生テキスト発行モーダル -->
+<div id="koukou-text-overlay" onclick="closeKoukouText()">
+  <div id="koukou-text-modal" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong style="font-size:1rem">📋 テキスト発行（LINEなどにコピー）</strong>
+      <button onclick="closeKoukouText()" style="border:none;background:none;font-size:1.2rem;cursor:pointer;color:#666">✕</button>
+    </div>
+    <textarea id="koukou-text-output" readonly></textarea>
+    <button onclick="copyKoukouText()" style="background:#2E7D32;color:#fff;border:none;border-radius:8px;padding:9px 22px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;align-self:flex-end">📋 クリップボードにコピー</button>
+  </div>
+</div>
+
+<footer>
+  PDFはGoogle Driveから自動取得 ／ データは毎朝自動更新されます
+  <span id="lock-btn" onclick="toggleLockPanel()" title="講師モード" style="margin-left:12px;cursor:pointer;opacity:.35;font-size:.9rem;user-select:none;vertical-align:middle">🔐</span>
+  <div id="lock-panel" style="display:none;margin-top:10px;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap">
+    <input type="password" id="pw-input" placeholder="講師パスワード"
+      style="border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:.85rem;outline:none"
+      onkeydown="if(event.key==='Enter')authenticate()">
+    <button onclick="authenticate()"
+      style="background:#4527a0;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:inherit;font-size:.85rem;cursor:pointer">認証</button>
+    <span id="logout-btn" onclick="logoutTeacher()" style="display:none;cursor:pointer;font-size:.82rem;color:#c62828">ログアウト</span>
+  </div>
+</footer>
+
+<script>
+// ====================================================
+//  CONFIG
+// ====================================================
+const GAS_ENDPOINT    = 'https://script.google.com/macros/s/AKfycbz3WKUbhvcoSMaMdrTF0vnEOOrsdyuPYdGiaMfNFxenaZqWONjGLabGWmsGSK4QefEnHg/exec';
+const AUTO_REFRESH_MS = 10 * 60 * 1000;
+// SHA-256('juku2024') — パスワードを変えたい場合は新しいハッシュに置き換えてください
+const TEACHER_PW_HASH = 'cc0e8f6bf370b3772aeb12bdcf65c3728648c3302499abe37803112c324c0fbb';
+
+// ⚠ 教科の色は塾のサイト全部でそろえる（塾長の指定 2026-09-29）。
+//   数学＝青／国語＝赤／理科＝緑／社会＝茶／英語＝ピンク。
+//   juken-plan/Student.html・Config.gs、video-library、konoha-terrace も同じ表を持つ。
+const SUBJECT_COLORS = {
+  '英語': { bg: '#D81B60', light: '#fce4ec' },
+  '数学': { bg: '#1565C0', light: '#e3f2fd' },
+  '国語': { bg: '#C62828', light: '#ffebee' },
+  '理科': { bg: '#2E7D32', light: '#e8f5e9' },
+  '社会': { bg: '#6D4C41', light: '#efebe9' },
+};
+
+// 「社会(地理)」→「社会」のように括弧以下を除いた親教科名を返す
+function _parentSubject(subj) {
+  return subj.replace(/[（(][^）)]*[）)]$/, '').trim();
+}
+// 親教科で色を引く（社会(地理) → 社会 の色）
+function _getSubjectColors(subj) {
+  return SUBJECT_COLORS[subj] || SUBJECT_COLORS[_parentSubject(subj)] || { bg: '#607d8b', light: '#eceff1' };
+}
+
+// ====================================================
+//  STATE
+// ====================================================
+let allEntries      = [];
+let activeGrade     = '';
+let activeSubject   = '';
+let activeType      = ''; // '' = 全て, '講義動画' = 講義動画のみ
+let searchKeyword   = '';
+let builderGrade    = '';
+let selectedItems   = []; // テスト作成用の選択リスト
+let siteCheckedIds  = new Set(); // ライブラリカードのチェック状態（セッション内）
+let fromSpreadsheet = false;     // スプレッドシートcheckモードで読み込んだか
+
+// 過去問アーカイブ
+let koukouEntries = [], koukouLoaded = false;
+let kkFilter = { grade: '', subject: '' };
+let koukouCheckedMap = new Map(); // id → {title, formUrl, subject, grade}
+
+let kakomonEntries = [], eikenEntries = [], daigakuEntries = [], moshiEntries = [];
+let archiveSubTab  = 'kakomon';
+let kakFilter = { school: '', subject: '', grade: '', testType: '', year: '' };
+let eiFilter  = { level: '', year: '' };
+let dgFilter  = { subject: '', year: '', keyword: '', topic: '', explOnly: false };
+let msFilter  = { grade: '', subject: '', round: '', year: '' };
+
+// 三重公立高校入試データベース
+let koritsuEntries = [];
+let krFilter = { school: '', department: '', year: '', scoreMin: '', scoreMax: '', naishinMin: '', naishinMax: '' };
+let krSort   = { key: 'school', dir: 'asc' };
+let krScoreRange   = { min: 0, max: 100 };
+let krNaishinRange = { min: 0, max: 100 };
+let krExpandedKey     = null; // 詳細を開いている行のキー（年度__学校__学科）。一度に1行のみ
+const koritsuDetailCache = {}; // key -> 'loading' | 'error' | 'locked' | entries[]
+// ログインし直したら「講師だけ」で閉じていたものを開け直せるよう捨てる
+function _krForgetLocked() { Object.keys(koritsuDetailCache).forEach(k => { if (koritsuDetailCache[k] === 'locked') delete koritsuDetailCache[k]; }); }
+
+// 過去問アーカイブ（定期テスト・英検・大学入試・模試）— テスト作成用チェック状態
+const archiveCheckedIds = { kakomon: new Set(), eiken: new Set(), daigaku: new Set(), moshi: new Set() };
+const ARCHIVE_CONFIG = {
+  kakomon: { entries: () => kakomonEntries, cardPrefix: 'ark-kak-', barId: 'kak-check-bar',     countId: 'kak-check-count',     gridId: 'kakomon-grid', label: '定期テスト過去問' },
+  eiken:   { entries: () => eikenEntries,   cardPrefix: 'ark-ei-',  barId: 'eiken-check-bar',   countId: 'eiken-check-count',   gridId: 'eiken-grid',   label: '英検過去問' },
+  daigaku: { entries: () => daigakuEntries, cardPrefix: 'ark-dg-',  barId: 'daigaku-check-bar', countId: 'daigaku-check-count', gridId: 'daigaku-grid', label: '大学入試過去問' },
+  moshi:   { entries: () => moshiEntries,   cardPrefix: 'ark-ms-',  barId: 'moshi-check-bar',   countId: 'moshi-check-count',   gridId: 'moshi-grid',   label: '三重県模試過去問' },
+  koritsu: { gridId: 'koritsu-table-wrap', label: '三重公立高校入試データベース' },
+};
+
+// ====================================================
+//  TAB NAVIGATION
+// ====================================================
+const TAB_ORDER = ['library','koukou','video','kakomon','eiken','daigaku','moshi','koritsu','builder','manager'];
+
+function switchTab(tab, updateHash = true) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', TAB_ORDER[i] === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  let loading = null;
+  if (tab === 'manager') loadTests();
+  if (tab === 'koukou')  loading = initKoukou();
+  if (tab === 'kakomon' || tab === 'eiken' || tab === 'daigaku' || tab === 'moshi' || tab === 'koritsu') loading = initArchive(tab);
+  if (tab === 'video')   loading = initVideo();
+
+  // URLに残す。塾から「#video を開いて」と案内できるようにするため。
+  // 講師タブはURLに出さない（リンクを踏んだだけで開けるようにはしない）。
+  if (updateHash && tab !== 'builder' && tab !== 'manager') {
+    try { history.replaceState(null, '', '#' + tab); } catch (e) {}
+  }
+  // タブバーは横スクロールで、選んだタブが画面外にいることがある。
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (activeBtn && activeBtn.scrollIntoView) {
+    activeBtn.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  return loading;
+}
+
+// URLのハッシュで開くタブを決める。#video で解説動画が直接開く。
+function _applyTabFromHash() {
+  const tab = String(location.hash || '').replace(/^#/, '');
+  // 講師タブはURLからは開かせない
+  if (TAB_ORDER.indexOf(tab) >= 0 && tab !== 'builder' && tab !== 'manager') {
+    return switchTab(tab, false);
+  }
+  return null;
+}
+window.addEventListener('hashchange', _applyTabFromHash);
+
+function switchMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach((b, i) => b.classList.toggle('active', ['random','checked'][i] === mode));
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('mode-' + mode).classList.add('active');
+}
+
+// ====================================================
+//  外部スクリプトを使うときに読む
+// ====================================================
+const _scriptLoads = {};
+function _loadScript(src) {
+  if (!_scriptLoads[src]) {
+    _scriptLoads[src] = new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = src; el.async = true;
+      el.onload = resolve;
+      el.onerror = () => { delete _scriptLoads[src]; reject(new Error('読み込みに失敗しました: ' + src)); };
+      document.head.appendChild(el);
+    });
+  }
+  return _scriptLoads[src];
+}
+function ensurePdfLib() { return window.PDFLib ? Promise.resolve() : _loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'); }
+function ensureMarked() { return window.marked ? Promise.resolve() : _loadScript('https://unpkg.com/marked@15.0.0/marked.min.js'); }
+function ensureMathJax() {
+  if (window.MathJax && MathJax.typesetPromise) return Promise.resolve();
+  return _loadScript('https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js')
+    .then(() => (MathJax.startup && MathJax.startup.promise) || null);
+}
+
+// ====================================================
+//  FETCH
+//
+//  一覧はブラウザにもしまっておき、次に開いたときはまずそれを出す（2026-09-30）。
+//  GAS は1回に4〜10秒かかるので、待たずに前回の一覧を見せ、届いたら差し替える。
+//  ⚠ localStorage は使えない環境がある（プライベートブラウズ・容量超え）。
+//    そのときはしまわないだけで、これまでどおり届くのを待つ。
+// ====================================================
+const LS_LIST_PREFIX = 'pl-list1:';        // しまう形を変えたら番号を上げる
+function _listCacheGet(key, maxAgeMs) {
+  try {
+    const v = JSON.parse(localStorage.getItem(LS_LIST_PREFIX + key) || 'null');
+    if (!v || !Array.isArray(v.data)) return null;
+    if (maxAgeMs && Date.now() - v.t > maxAgeMs) return null;
+    return v;
+  } catch (e) { return null; }
+}
+function _listCacheSet(key, data) {
+  try { localStorage.setItem(LS_LIST_PREFIX + key, JSON.stringify({ t: Date.now(), data: data })); }
+  catch (e) { try { localStorage.removeItem(LS_LIST_PREFIX + key); } catch (_) {} }
+}
+// ⚠ GAS はときどき JSON ではなく「ファイルを開くことができません」の HTML を返す
+//   （2026-09-30 に手元とブラウザの両方で実測。30秒以上かかったうえで返ってくる）。
+//   同じ呼び出しをもう一度投げると通るので、1回だけ取り直す。
+async function _gasGetJson(url) {
+  for (let i = 0; ; i++) {
+    const res  = await fetch(url);
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch (e) {
+      if (i >= 1) throw new Error('サーバーから正しい応答がありませんでした。しばらくして「更新」を押してください');
+    }
+  }
+}
+async function gasList(action) {
+  const json = await _gasGetJson(GAS_ENDPOINT + (action ? '?action=' + action : ''));
+  if (json.status !== 'ok') throw new Error(json.message || 'データ取得エラー');
+  const data = json.data || [];
+  _listCacheSet(action || 'library', data);
+  return data;
+}
+
+async function fetchEntries() {
+  if (!GAS_ENDPOINT || GAS_ENDPOINT.startsWith('<<')) return _getDemoData();
+  return gasList('');
+}
+
+// waitFor: 最初に開いたのが別のタブなら、そちらの取得が済むまで待つ。
+// GAS は同時に投げると極端に遅くなる（下の ARCHIVE_* の注意書きを参照）。
+async function init(manual = false, waitFor = null) {
+  let shownFromCache = false;
+  if (manual && !allEntries.length) {
+    const cached = _listCacheGet('library');
+    if (cached && cached.data.length) {
+      allEntries = cached.data;
+      renderAll();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('stats-strip').style.display = 'flex';
+      shownFromCache = true;
+    }
+  }
+  if (manual && !shownFromCache) { document.getElementById('loading').style.display = 'block'; document.getElementById('card-grid').style.display = 'none'; }
+  if (waitFor) { try { await waitFor; } catch (e) {} }
+  try {
+    const entries   = await fetchEntries();
+    const prevCount = allEntries.length;
+    const changed   = JSON.stringify(entries) !== JSON.stringify(allEntries);
+    allEntries = entries;
+    if (manual && prevCount > 0 && entries.length > prevCount) showBadge('🆕 ' + (entries.length - prevCount) + '件追加');
+    if (changed || !shownFromCache) renderAll();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('stats-strip').style.display = 'flex';
+  } catch (err) {
+    if (shownFromCache) { console.warn('一覧の更新に失敗（前回の一覧を表示中）:', err); return; }
+    document.getElementById('loading').innerHTML = '<p style="color:#c62828">⚠️ ' + escHtml(err.message) + '</p>';
+  }
+}
+
+// ====================================================
+//  LIBRARY FILTERING
+// ====================================================
+function getFilteredEntries() {
+  return allEntries.filter(e => {
+    if (activeGrade && e.grade !== activeGrade) return false;
+    if (activeSubject && e.subject !== activeSubject && _parentSubject(e.subject) !== activeSubject) return false;
+    if (activeType === '講義動画' && !e.unit.includes('講義動画')) return false;
+    if (activeType === 'YouTube付き' && !(e.youtubeUrls && e.youtubeUrls.length)) return false;
+    if (searchKeyword && !e.unit.includes(searchKeyword) && !e.grade.includes(searchKeyword) && !e.subject.includes(searchKeyword)) return false;
+    return true;
+  });
+}
+function setGrade(g)   { activeGrade = g;   _updateFilterBtns('grade', g); renderAll(); }
+function setSubject(s) { activeSubject = s; _updateFilterBtns('subj', s);  renderAll(); }
+function setType(t)    { activeType = t;    _updateFilterBtns('type', t);  renderAll(); }
+function onSearchInput(v) { searchKeyword = v.trim(); renderAll(); }
+function _updateFilterBtns(prefix, value) {
+  document.querySelectorAll('[id^="' + prefix + '-"]').forEach(btn => {
+    const val = btn.id.replace(prefix + '-', '');
+    btn.classList.toggle('active', val === 'all' ? !value : val === value);
+  });
+}
+function renderAll() { renderActiveTags(); renderCards(); renderStats(); }
+
+function renderActiveTags() {
+  const c = document.getElementById('active-tags');
+  const chips = [];
+  if (activeGrade)   chips.push({ label: activeGrade,   clear: () => setGrade('') });
+  if (activeSubject) chips.push({ label: activeSubject, clear: () => setSubject('') });
+  if (searchKeyword) chips.push({ label: '🔍 ' + searchKeyword, clear: () => { searchKeyword = ''; document.getElementById('search-input').value = ''; renderAll(); } });
+  c.innerHTML = chips.map((ch, i) => '<span class="tag-chip">' + escHtml(ch.label) + '<button onclick="clearTag(' + i + ')">×</button></span>').join('');
+  window._tagClears = chips.map(ch => ch.clear);
+}
+function clearTag(i) { if (window._tagClears?.[i]) window._tagClears[i](); }
+
+function renderStats() {
+  const f = getFilteredEntries();
+  document.getElementById('stat-total').textContent    = allEntries.length;
+  document.getElementById('stat-filtered').textContent = f.length;
+  document.getElementById('stat-with-yt').textContent  = allEntries.filter(e => e.youtubeUrls && e.youtubeUrls.length).length;
+}
+
+function renderCards() {
+  const f    = getFilteredEntries();
+  const grid = document.getElementById('card-grid');
+  const emp  = document.getElementById('empty-state');
+  if (!f.length) { grid.style.display = 'none'; emp.style.display = 'block'; return; }
+  grid.style.display = 'grid'; emp.style.display = 'none';
+  grid.innerHTML = f.map(renderCard).join('');
+}
+
+function _driveThumb(url) {
+  const m = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400' : '';
+}
+
+function renderCard(entry) {
+  const colors  = _getSubjectColors(entry.subject);
+  const parent  = _parentSubject(entry.subject);
+  const hasSub  = parent !== entry.subject;
+  const hasPdf  = !!entry.problemUrl, hasAns = !!entry.answerUrl;
+  const ytUrls  = entry.youtubeUrls || (entry.youtubeUrl ? [entry.youtubeUrl] : []);
+  const subjBadges = hasSub
+    ? '<span class="badge" style="background:' + colors.light + ';color:' + colors.bg + '">' + escHtml(parent) + '</span>' +
+      '<span class="badge" style="background:' + colors.light + ';color:' + colors.bg + ';opacity:.75">' + escHtml(entry.subject) + '</span>'
+    : '<span class="badge" style="background:' + colors.light + ';color:' + colors.bg + '">' + escHtml(entry.subject) + '</span>';
+  const isChecked  = siteCheckedIds.has(entry.id);
+  const isLecture  = entry.unit.includes('講義動画');
+  return '<div class="entry-card' + (isChecked ? ' is-checked' : '') + '" id="card-' + escAttr(entry.id) + '">' +
+    '<label class="card-check" title="テスト作成に使う" onclick="event.stopPropagation()">' +
+      '<input type="checkbox" class="card-checkbox" id="chk-' + escAttr(entry.id) + '"' +
+      (isChecked ? ' checked' : '') +
+      ' onchange="onCardCheck(\'' + escAttr(entry.id) + '\', this.checked)">' +
+    '</label>' +
+    '<div class="card-badges"><span class="badge badge-grade">' + escHtml(entry.grade) + '</span>' +
+    subjBadges +
+    (isLecture ? '<span class="badge" style="background:#eceff1;color:#37474f">🎥 講義動画</span>' : '') +
+    '</div>' +
+    (hasPdf ? '<img class="card-thumb" src="' + _driveThumb(entry.problemUrl) + '" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
+    '<div class="card-unit"><span class="card-unit-tag">' + escHtml(entry.unit) + '</span></div>' +
+    '<div class="card-actions">' +
+    (hasPdf ? '<button class="btn-action btn-pdf" onclick="openPdf(\'' + escAttr(entry.problemUrl) + '\',\'問題\')">📄 問題PDF</button>' : '') +
+    (hasAns ? '<button class="btn-action btn-ans" onclick="openPdf(\'' + escAttr(entry.answerUrl)  + '\',\'解答\')">✅ 解答PDF</button>' : '') +
+    (entry.hasExplanation ? '<button class="btn-action" onclick="openExplanation(\'' + escAttr(entry.id) + '\')" style="background:#f3e5f5;color:#4a148c">🤖 解説</button>' : '') +
+    ytUrls.map(function(url, i) {
+      const label = ytUrls.length === 1 ? '▶ YouTube' : '▶ YouTube' + (i + 1);
+      return '<a class="btn-action btn-yt" href="' + escAttr(url) + '" target="_blank" rel="noopener">' + label + '</a>';
+    }).join('') +
+    (localStorage.getItem('teacherMode') === '1'
+      ? '<button class="btn-yt-edit" onclick="toggleYtEdit(\'' + escAttr(entry.id) + '\')">' +
+        (ytUrls.length ? '✏️ YouTube編集' : '＋ YouTube追加') + '</button>'
+      : '') +
+    '</div>' +
+    '<div class="yt-edit-form" id="yt-form-' + escAttr(entry.id) + '">' +
+      '<input class="yt-edit-input" id="yt-input-' + escAttr(entry.id) + '" type="text"' +
+      ' placeholder="YouTube URL（空にすると削除）"' +
+      ' value="' + escAttr(ytUrls.join('\n')) + '">' +
+      '<div class="yt-edit-actions">' +
+        '<button class="yt-edit-save" onclick="saveYtUrl(\'' + escAttr(entry.id) + '\')">保存</button>' +
+        '<button class="yt-edit-clear" onclick="clearYtUrl(\'' + escAttr(entry.id) + '\')">削除</button>' +
+        '<button class="yt-edit-cancel" onclick="toggleYtEdit(\'' + escAttr(entry.id) + '\')">キャンセル</button>' +
+      '</div>' +
+    '</div>' +
+    (entry.updatedAt ? '<div class="card-updated">更新: ' + entry.updatedAt + '</div>' : '') +
+    '</div>';
+}
+
+// ====================================================
+//  PDF MODAL
+// ====================================================
+function openPdf(url, label) {
+  document.getElementById('pdf-frame').src    = url.replace('/view', '/preview');
+  document.getElementById('modal-title').textContent = label + ' PDF';
+  document.getElementById('pdf-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closePdfModal() {
+  document.getElementById('pdf-modal').style.display = 'none';
+  document.getElementById('pdf-frame').src = '';
+  document.body.style.overflow = '';
+}
+function onModalOverlayClick(e) { if (e.target === document.getElementById('pdf-modal')) closePdfModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeExpModal(); } });
+
+// ====================================================
+//  解説モーダル
+// ====================================================
+// キャッシュのキーに source を含める。問題ライブラリと大学過去問は
+// 別々のシートなのでIDが衝突しうるため。
+const explanationCache = {};  // source:id → Markdown本文（一覧APIは有無フラグのみ返すため個別取得してキャッシュ）
+
+// source を省略すると問題ライブラリ（従来の呼び出しはそのまま動く）
+async function openExplanation(id, source) {
+  const src   = source || 'library';
+  const entry = (src === 'daigaku' ? daigakuEntries : allEntries).find(e => e.id === id);
+  if (!entry || !entry.hasExplanation) return;
+
+  const title = src === 'daigaku'
+    ? `解説: ${entry.university}${entry.year ? ' ' + entry.year + '年度' : ''} ${entry.subject}`
+    : '解説: ' + entry.unit;
+  document.getElementById('exp-modal-title').textContent = title;
+  const body = document.getElementById('exp-modal-body');
+  document.getElementById('exp-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  const cacheKey = src + ':' + id;
+  let text = explanationCache[cacheKey];
+  if (!text) {
+    body.innerHTML = '<div style="text-align:center;padding:60px 0;color:#718096"><div class="spinner"></div>解説を読み込み中...</div>';
+    try {
+      const res  = await fetch(GAS_ENDPOINT + '?action=explanation&source=' + encodeURIComponent(src)
+                             + '&id=' + encodeURIComponent(id));
+      const json = await res.json();
+      if (json.status !== 'ok' || !json.data) throw new Error(json.message || '解説が取得できませんでした');
+      text = json.data;
+      explanationCache[cacheKey] = text;
+    } catch (err) {
+      body.innerHTML = '<div style="text-align:center;padding:60px 0;color:#c62828">読み込みに失敗しました。<br>' + escHtml(err.message) + '</div>';
+      return;
+    }
+  }
+  try { await ensureMarked(); } catch (e) { /* 読めなければ素の文で出す */ }
+  body.innerHTML = (typeof marked !== 'undefined' ? marked.parse(text) : escHtml(text).replace(/\n/g, '<br>'));
+  ensureMathJax().then(function() { return MathJax.typesetPromise([body]); }).catch(function(){});
+}
+function closeExpModal() {
+  document.getElementById('exp-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function onExpModalOverlayClick(e) { if (e.target === document.getElementById('exp-modal')) closeExpModal(); }
+
+// ====================================================
+//  TEST BUILDER — ランダム生成
+// ====================================================
+function setBGrade(g) {
+  builderGrade = g;
+  document.querySelectorAll('[id^="bg-"]').forEach(btn => {
+    const val = btn.id.replace('bg-', '');
+    btn.classList.toggle('active', val === 'all' ? !g : val === g);
+  });
+}
+
+function generateRandom() {
+  const countPerSubj = parseInt(document.getElementById('count-per-subj').value);
+  const subjects     = [...document.querySelectorAll('.subject-check:checked')].map(c => c.value);
+  if (!subjects.length) { showToast('教科を1つ以上選んでください', 'error'); return; }
+
+  let pool = allEntries.filter(e => e.problemUrl); // 問題PDFがあるもの
+  if (builderGrade) pool = pool.filter(e => e.grade === builderGrade);
+
+  const picked = [];
+  subjects.forEach(subj => {
+    const sub = pool.filter(e => e.subject === subj || _parentSubject(e.subject) === subj);
+    const shuffled = _shuffle([...sub]);
+    const take = countPerSubj === 0 ? shuffled.length : Math.min(countPerSubj, shuffled.length);
+    picked.push(...shuffled.slice(0, take));
+  });
+
+  if (!picked.length) { showToast('条件に合う問題がありません', 'error'); return; }
+  selectedItems = picked;
+  renderSelectedList();
+  showToast('🎲 ' + picked.length + '問を選びました', 'success');
+}
+
+function _shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ====================================================
+//  TEST BUILDER — チェック選択（サイト側 & スプレッドシート側）
+// ====================================================
+function loadSiteChecked() {
+  selectedItems = allEntries.filter(e => siteCheckedIds.has(e.id) && e.problemUrl);
+  fromSpreadsheet = false;
+  renderSelectedList();
+  switchTab('builder');
+  switchMode('checked');
+  showToast('☑️ ' + selectedItems.length + '件のカードチェックを読み込みました', 'success');
+}
+
+async function loadSheetChecked() {
+  showToast('スプレッドシートからチェック済みを取得中...', '');
+  try {
+    const res  = await fetch(GAS_ENDPOINT + '?action=checked');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    selectedItems = json.data.filter(e => e.problemUrl);
+    fromSpreadsheet = true;
+    renderSelectedList();
+    showToast('☑️ ' + selectedItems.length + '件のチェック済み問題を読み込みました', 'success');
+  } catch (err) {
+    showToast('エラー: ' + err.message, 'error');
+  }
+}
+
+// ====================================================
+//  カードチェックボックス
+// ====================================================
+function onCardCheck(id, checked) {
+  checked ? siteCheckedIds.add(id) : siteCheckedIds.delete(id);
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.toggle('is-checked', checked);
+  _updateCheckBar();
+}
+
+function clearSiteChecked() {
+  siteCheckedIds.clear();
+  document.querySelectorAll('.card-checkbox').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.entry-card.is-checked').forEach(c => c.classList.remove('is-checked'));
+  _updateCheckBar();
+}
+
+function _updateCheckBar() {
+  const bar = document.getElementById('check-bar');
+  const n   = siteCheckedIds.size;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('check-bar-count').textContent = n + '件選択中';
+}
+
+// ====================================================
+//  TEST BUILDER — 選択リスト描画
+// ====================================================
+function renderSelectedList() {
+  const list = document.getElementById('selected-list');
+  document.getElementById('selected-count').textContent = '(' + selectedItems.length + '件)';
+  if (!selectedItems.length) {
+    list.innerHTML = '<li class="selected-empty">問題が選ばれていません</li>';
+    return;
+  }
+  list.innerHTML = selectedItems.map((e, i) => {
+    const c = SUBJECT_COLORS[e.subject] || { bg: '#607d8b' };
+    return '<li class="selected-item">' +
+      '<span class="selected-num">' + (i + 1) + '</span>' +
+      '<div class="selected-info">' +
+        '<div class="selected-grade-subj"><span style="color:' + c.bg + ';font-weight:700">' + escHtml(e.subject) + '</span> ' + escHtml(e.grade) + '</div>' +
+        '<div class="selected-unit">' + escHtml(e.unit) + '</div>' +
+      '</div>' +
+      '<button class="selected-remove" onclick="removeSelected(' + i + ')" title="削除">×</button>' +
+    '</li>';
+  }).join('');
+}
+
+function removeSelected(i) {
+  selectedItems.splice(i, 1);
+  renderSelectedList();
+}
+
+// ====================================================
+//  PDF結合 — 一括作成（問題＋解答）
+// ====================================================
+async function makePdfBoth() {
+  if (!selectedItems.length) { showToast('問題を選んでください', 'error'); return; }
+  const title = document.getElementById('test-name-input').value.trim();
+  if (!title) { showToast('テスト名を入力してください', 'error'); return; }
+
+  const btn = document.getElementById('btn-make-both');
+  btn.disabled = true; btn.textContent = '作成中...';
+
+  try {
+    await makePdfSingle('problem', '【問題】' + title + '.pdf', 0, 50);
+    await makePdfSingle('answer',  '【解答】' + title + '.pdf', 50, 100);
+
+    showProgress(false);
+
+    const noSave = document.getElementById('no-save-check').checked;
+    if (!noSave) {
+      await _doSaveTest(title, selectedItems.map(e => e.id));
+      showToast('✅ PDFをダウンロードし、テストを保存しました', 'success');
+    } else {
+      showToast('✅ 問題・解答PDFをダウンロードしました', 'success');
+    }
+
+    if (fromSpreadsheet) await resetSheetChecked();
+    clearSiteChecked();
+    fromSpreadsheet = false;
+  } catch (err) {
+    showProgress(false);
+    showToast('エラー: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 一括作成（問題＋解答）';
+  }
+}
+
+async function makePdfSingle(type, fileName, progressStart, progressEnd) {
+  const targets = selectedItems.filter(e => type === 'problem' ? e.problemUrl : e.answerUrl);
+  if (!targets.length) return;
+
+  const label = type === 'problem' ? '問題' : '解答';
+  showProgress(true, progressStart || 0, label + 'PDF取得中... (0/' + targets.length + ')');
+
+  await ensurePdfLib();
+  const { PDFDocument } = PDFLib;
+  const merged = await PDFDocument.create();
+  const range  = (progressEnd || 100) - (progressStart || 0);
+
+  for (let i = 0; i < targets.length; i++) {
+    const entry  = targets[i];
+    const url    = type === 'problem' ? entry.problemUrl : entry.answerUrl;
+    const fileId = _extractFileId(url);
+    if (!fileId) continue;
+
+    const pct = (progressStart || 0) + (i / targets.length) * range * 0.9;
+    showProgress(true, pct, label + 'PDF取得中... (' + (i + 1) + '/' + targets.length + ')');
+    const b64 = await _fetchPdfBase64(fileId);
+    if (!b64) continue;
+
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const pdf   = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    let indices = pdf.getPageIndices();
+    const useLimit    = document.getElementById('use-page-limit').checked;
+    const extractMode = document.getElementById('page-extract-mode')?.value || 'random';
+    if (type === 'problem' && useLimit) {
+      if (extractMode === 'range') {
+        const start = (parseInt(document.getElementById('range-start').value, 10) || 1) - 1;
+        const count = parseInt(document.getElementById('range-count').value, 10) || 2;
+        indices = indices.slice(start, start + count);
+      } else {
+        const limitN = parseInt(document.getElementById('pages-per-entry').value, 10) || 1;
+        if (limitN < indices.length) {
+          for (let j = indices.length - 1; j > 0; j--) {
+            const k = Math.floor(Math.random() * (j + 1));
+            [indices[j], indices[k]] = [indices[k], indices[j]];
+          }
+          indices = indices.slice(0, limitN).sort((a, b) => a - b);
+        }
+      }
+    }
+    const pages = await merged.copyPages(pdf, indices);
+    pages.forEach(page => merged.addPage(page));
+  }
+
+  showProgress(true, (progressEnd || 100) - 2, label + 'PDF生成中...');
+  const mergedBytes = await merged.save();
+  _downloadBytes(mergedBytes, fileName);
+}
+
+async function resetSheetChecked() {
+  try {
+    await fetch(GAS_ENDPOINT, { method: 'POST', body: JSON.stringify({ action: 'resetChecked' }) });
+  } catch(e) { /* サイレント */ }
+}
+
+async function _fetchPdfBase64(fileId) {
+  const res  = await fetch(GAS_ENDPOINT + '?action=pdf&id=' + encodeURIComponent(fileId));
+  const json = await res.json();
+  if (json.status !== 'ok') { console.warn('PDF取得失敗:', fileId, json.message); return null; }
+  return json.data;
+}
+
+function _extractFileId(url) {
+  const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+function _downloadBytes(bytes, fileName) {
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showProgress(show, pct = 0, label = '') {
+  document.getElementById('progress-wrap').style.display = show ? 'block' : 'none';
+  document.getElementById('progress-fill').style.width   = pct + '%';
+  document.getElementById('progress-label').textContent  = label;
+}
+
+// ====================================================
+//  テスト保存（makePdfBothから自動呼び出し）
+// ====================================================
+async function _doSaveTest(name, entryIds) {
+  const res  = await fetch(GAS_ENDPOINT, {
+    method : 'POST',
+    body   : JSON.stringify({ action: 'saveTest', name, entryIds, memo: '' })
+  });
+  const json = await res.json();
+  if (json.status !== 'ok') throw new Error(json.message);
+}
+
+// ====================================================
+//  テスト管理
+// ====================================================
+async function loadTests() {
+  document.getElementById('test-list').innerHTML = '<div id="loading-tests" style="text-align:center;padding:40px;color:var(--text-sub)">読み込み中...</div>';
+  try {
+    const res  = await fetch(GAS_ENDPOINT + '?action=tests');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    renderTests(json.data);
+  } catch (err) {
+    document.getElementById('test-list').innerHTML = '<p style="color:#c62828;padding:20px">エラー: ' + escHtml(err.message) + '</p>';
+  }
+}
+
+function renderTests(tests) {
+  const el = document.getElementById('test-list');
+  if (!tests.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-sub)">💾 保存されたテストはありません</div>';
+    return;
+  }
+  el.innerHTML = tests.map(t => {
+    const count = t.entryIds ? t.entryIds.length : '?';
+    return '<div class="test-card">' +
+      '<div class="test-card-info">' +
+        '<div class="test-card-name">' + escHtml(t.name) + '</div>' +
+        '<div class="test-card-meta">' + t.createdAt + ' ／ ' + count + '問' + (t.memo ? ' ／ ' + escHtml(t.memo) : '') + '</div>' +
+      '</div>' +
+      '<div class="test-card-actions">' +
+        '<button class="btn-redownload problems" onclick="redownloadTest(\'' + escAttr(t.testId) + '\')">📥 再ダウンロード</button>' +
+        '<button class="btn-delete-test" onclick="deleteTest(\'' + escAttr(t.testId) + '\',\'' + escAttr(t.name) + '\')">🗑 削除</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  window._loadedTests = tests;
+}
+
+async function redownloadTest(testId) {
+  const test = (window._loadedTests || []).find(t => t.testId === testId);
+  if (!test) { showToast('テストが見つかりません', 'error'); return; }
+
+  const entries = (test.entryIds || []).map(id => allEntries.find(e => e.id === id)).filter(Boolean);
+  if (!entries.length) { showToast('問題データが見つかりません（ライブラリタブで更新してください）', 'error'); return; }
+
+  selectedItems = entries;
+  document.getElementById('test-name-input').value = test.name;
+  switchTab('builder');
+  try {
+    await makePdfSingle('problem', '【問題】' + test.name + '.pdf', 0, 50);
+    await makePdfSingle('answer',  '【解答】' + test.name + '.pdf', 50, 100);
+    showProgress(false);
+    showToast('✅ 問題・解答PDFをダウンロードしました', 'success');
+  } catch (err) {
+    showProgress(false);
+    showToast('エラー: ' + err.message, 'error');
+  }
+}
+
+async function deleteTest(testId, name) {
+  if (!confirm('「' + name + '」を削除しますか？')) return;
+  try {
+    const res  = await fetch(GAS_ENDPOINT, {
+      method : 'POST',
+      body   : JSON.stringify({ action: 'deleteTest', testId })
+    });
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    showToast('削除しました', 'success');
+    loadTests();
+  } catch (err) {
+    showToast('エラー: ' + err.message, 'error');
+  }
+}
+
+// ====================================================
+//  TOAST / BADGE / UTILS
+// ====================================================
+function showBadge(text) {
+  const b = document.getElementById('update-badge');
+  b.textContent = text; b.style.display = 'inline-block';
+  setTimeout(() => b.style.display = 'none', 5000);
+}
+
+let _toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast' + (type ? ' ' + type : '') + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) { return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+function _getDemoData() {
+  return [
+    { id:'d1', grade:'中1', subject:'数学', unit:'一次方程式',     problemUrl:'#demo', answerUrl:'#demo', youtubeUrl:'https://www.youtube.com/watch?v=demo1', updatedAt:'2026-04-20', checked: false },
+    { id:'d2', grade:'中1', subject:'英語', unit:'be動詞の使い方', problemUrl:'#demo', answerUrl:'',      youtubeUrl:'', updatedAt:'2026-04-19', checked: true },
+    { id:'d3', grade:'中2', subject:'数学', unit:'連立方程式',     problemUrl:'#demo', answerUrl:'#demo', youtubeUrl:'https://www.youtube.com/watch?v=demo3', updatedAt:'2026-04-18', checked: false },
+    { id:'d4', grade:'中2', subject:'理科', unit:'化学変化と原子', problemUrl:'#demo', answerUrl:'#demo', youtubeUrl:'', updatedAt:'2026-04-17', checked: false },
+    { id:'d5', grade:'中3', subject:'国語', unit:'古文・助動詞',   problemUrl:'#demo', answerUrl:'',      youtubeUrl:'', updatedAt:'2026-04-16', checked: false },
+    { id:'d6', grade:'中3', subject:'社会', unit:'公民・憲法',     problemUrl:'#demo', answerUrl:'#demo', youtubeUrl:'https://www.youtube.com/watch?v=demo6', updatedAt:'2026-04-15', checked: true },
+  ];
+}
+
+// ====================================================
+//  YouTube URL 編集（講師モードのみ）
+// ====================================================
+function toggleYtEdit(id) {
+  const form = document.getElementById('yt-form-' + id);
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) {
+    document.getElementById('yt-input-' + id).focus();
+  }
+}
+
+async function saveYtUrl(id) {
+  const input = document.getElementById('yt-input-' + id);
+  const url   = input.value.trim();
+  try {
+    const res  = await fetch(GAS_ENDPOINT, {
+      method: 'POST',
+      body  : JSON.stringify({ action: 'updateYouTubeUrl', entryId: id, youtubeUrl: url })
+    });
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    showToast('✅ YouTube URLを更新しました', 'success');
+    // allEntries を即時更新して再描画（ページリロード不要）
+    const urls  = url.split('\n').map(u => u.trim()).filter(Boolean);
+    const entry = allEntries.find(e => e.id === id);
+    if (entry) { entry.youtubeUrl = urls[0] || ''; entry.youtubeUrls = urls; }
+    renderAll();
+  } catch (err) {
+    showToast('エラー: ' + err.message, 'error');
+  }
+}
+
+async function clearYtUrl(id) {
+  document.getElementById('yt-input-' + id).value = '';
+  await saveYtUrl(id);
+}
+
+// ====================================================
+//  TEACHER MODE
+// ====================================================
+async function _hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function toggleLockPanel() {
+  const panel = document.getElementById('lock-panel');
+  const visible = panel.style.display === 'flex';
+  panel.style.display = visible ? 'none' : 'flex';
+  if (!visible) setTimeout(() => document.getElementById('pw-input').focus(), 50);
+}
+
+async function authenticate() {
+  const input = document.getElementById('pw-input').value;
+  const hash  = await _hashPassword(input);
+  if (hash === TEACHER_PW_HASH) {
+    localStorage.setItem('teacherMode', '1');
+    applyTeacherMode();
+    document.getElementById('pw-input').value = '';
+    showToast('講師モードに切り替えました', 'success');
+  } else {
+    showToast('パスワードが違います', 'error');
+  }
+}
+
+function applyTeacherMode() {
+  document.querySelectorAll('.teacher-tab').forEach(el => el.style.display = '');
+  document.getElementById('lock-btn').textContent = '🔓';
+  document.getElementById('lock-btn').style.opacity = '.6';
+  document.getElementById('logout-btn').style.display = 'inline';
+}
+
+function logoutTeacher() {
+  localStorage.removeItem('teacherMode');
+  document.querySelectorAll('.teacher-tab').forEach(el => el.style.display = 'none');
+  document.getElementById('lock-btn').textContent = '🔐';
+  document.getElementById('lock-btn').style.opacity = '.35';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('lock-panel').style.display = 'none';
+  switchTab('library');
+  showToast('ログアウトしました', '');
+}
+
+// ====================================================
+//  ARCHIVE — 過去問ライブラリ
+// ====================================================
+function switchArchiveTab(tab) {
+  archiveSubTab = tab;
+  document.querySelectorAll('.archive-sub-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['kakomon','eiken','daigaku'][i] === tab);
+  });
+  document.querySelectorAll('.archive-sub-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('arc-' + tab).classList.add('active');
+  renderArchiveTab(tab);
+}
+
+// ====================================================
+//  高校生単元テスト
+// ====================================================
+function onKoukouCheck(id, checked, title, formUrl, subject, grade) {
+  if (checked) koukouCheckedMap.set(id, { title, formUrl, subject, grade });
+  else         koukouCheckedMap.delete(id);
+  const card = document.getElementById('kk-card-' + id);
+  if (card) {
+    card.classList.toggle('is-checked', checked);
+    card.style.borderLeftColor = checked ? '#2E7D32' : '';
+  }
+  _updateKoukouBar();
+}
+
+function _updateKoukouBar() {
+  const n   = koukouCheckedMap.size;
+  const bar = document.getElementById('koukou-check-bar');
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('koukou-check-count').textContent = n + '件選択中';
+}
+
+function clearKoukouChecked() {
+  koukouCheckedMap.clear();
+  document.querySelectorAll('[id^="kk-card-"]').forEach(c => {
+    c.classList.remove('is-checked');
+    c.style.borderLeftColor = '';
+  });
+  document.querySelectorAll('#koukou-grid .card-checkbox').forEach(cb => cb.checked = false);
+  _updateKoukouBar();
+}
+
+function showKoukouText() {
+  const lines = [...koukouCheckedMap.values()].map(e => {
+    const subj = e.subject ? '【' + e.subject + '】' : '';
+    return subj + e.title + '\n' + e.formUrl;
+  });
+  document.getElementById('koukou-text-output').value = lines.join('\n\n');
+  const ov = document.getElementById('koukou-text-overlay');
+  ov.style.display = 'flex';
+}
+
+function closeKoukouText() {
+  document.getElementById('koukou-text-overlay').style.display = 'none';
+}
+
+// ====================================================
+//  過去問アーカイブ（定期テスト・英検・大学入試）— テスト作成チェックボックス
+// ====================================================
+function onArchiveCheck(type, id, checked) {
+  const set = archiveCheckedIds[type];
+  checked ? set.add(id) : set.delete(id);
+  const card = document.getElementById(ARCHIVE_CONFIG[type].cardPrefix + id);
+  if (card) card.classList.toggle('is-checked', checked);
+  _updateArchiveBar(type);
+}
+
+function _updateArchiveBar(type) {
+  const cfg = ARCHIVE_CONFIG[type];
+  const n   = archiveCheckedIds[type].size;
+  const bar = document.getElementById(cfg.barId);
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById(cfg.countId).textContent = n + '件選択中';
+}
+
+function clearArchiveChecked(type) {
+  archiveCheckedIds[type].clear();
+  const cfg = ARCHIVE_CONFIG[type];
+  document.querySelectorAll('[id^="' + cfg.cardPrefix + '"]').forEach(c => c.classList.remove('is-checked'));
+  document.querySelectorAll('#' + cfg.gridId + ' .card-checkbox').forEach(cb => cb.checked = false);
+  _updateArchiveBar(type);
+}
+
+async function _mergePdfsFromUrls(urls, fileName) {
+  await ensurePdfLib();
+  const { PDFDocument } = PDFLib;
+  const merged = await PDFDocument.create();
+  for (const url of urls) {
+    const fileId = _extractFileId(url);
+    if (!fileId) continue;
+    const b64 = await _fetchPdfBase64(fileId);
+    if (!b64) continue;
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const pdf   = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const pages = await merged.copyPages(pdf, pdf.getPageIndices());
+    pages.forEach(p => merged.addPage(p));
+  }
+  const mergedBytes = await merged.save();
+  _downloadBytes(mergedBytes, fileName);
+}
+
+async function makeArchivePdf(type) {
+  const cfg = ARCHIVE_CONFIG[type];
+  const ids = archiveCheckedIds[type];
+  if (!ids.size) { showToast('項目を選んでください', 'error'); return; }
+
+  const entries = cfg.entries().filter(e => ids.has(e.id));
+  const title = prompt('ファイル名を入力してください', cfg.label + '_' + entries.length + '件');
+  if (!title) return;
+
+  showToast('📥 PDFを作成中...（件数が多いと時間がかかります）', '');
+  try {
+    if (type === 'kakomon') {
+      const urls = entries.map(e => e.driveUrl).filter(Boolean);
+      if (!urls.length) { showToast('PDFが見つかりません', 'error'); return; }
+      await _mergePdfsFromUrls(urls, title + '.pdf');
+    } else {
+      const problemUrls = entries.map(e => e.problemUrl).filter(Boolean);
+      // 模試過去問は5教科で解答PDFが共通のため、複数教科選択時に同じ解答が重複結合されないよう去重
+      const answerUrls  = [...new Set(entries.map(e => e.answerUrl).filter(Boolean))];
+      if (!problemUrls.length && !answerUrls.length) { showToast('PDFが見つかりません', 'error'); return; }
+      if (problemUrls.length) await _mergePdfsFromUrls(problemUrls, '【問題】' + title + '.pdf');
+      if (answerUrls.length)  await _mergePdfsFromUrls(answerUrls,  '【解答】' + title + '.pdf');
+    }
+    showToast('✅ PDFをダウンロードしました', 'success');
+    clearArchiveChecked(type);
+  } catch (err) {
+    showToast('エラー: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+function copyKoukouText() {
+  const ta = document.getElementById('koukou-text-output');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => showToast('コピーしました！')).catch(() => {
+    document.execCommand('copy');
+    showToast('コピーしました！');
+  });
+}
+
+let koukouFetching = null;
+async function initKoukou() {
+  if (koukouLoaded) { renderKoukouCards(); return; }
+  if (koukouFetching) return koukouFetching;
+  // 前回の一覧があれば先に出し、届いたものと違っていたら差し替える
+  const cached = _listCacheGet('koukou');
+  if (cached && cached.data.length) {
+    koukouEntries = cached.data;
+    koukouLoaded = true;
+    _buildKoukouFilters();
+    renderKoukouCards();
+  } else {
+    document.getElementById('koukou-grid').innerHTML =
+      '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">読み込み中…</p>';
+  }
+  koukouFetching = (async () => {
+    try {
+      const fresh = await gasList('koukou');
+      const changed = JSON.stringify(fresh) !== JSON.stringify(koukouEntries);
+      koukouEntries = fresh;
+      if (changed || !koukouLoaded) {
+        koukouLoaded = true;
+        _buildKoukouFilters();
+        renderKoukouCards();
+      }
+    } catch (e) {
+      if (!koukouLoaded) {
+        document.getElementById('koukou-grid').innerHTML =
+          '<p style="color:#c62828;padding:40px 0;text-align:center;grid-column:1/-1">読み込みに失敗しました</p>';
+      }
+    } finally {
+      koukouFetching = null;
+    }
+  })();
+  return koukouFetching;
+}
+
+function _buildKoukouFilters() {
+  const grades   = ['', ...[...new Set(koukouEntries.map(e => e.grade))].filter(Boolean).sort()];
+  const subjects = ['', ...[...new Set(koukouEntries.map(e => e.subject))].filter(Boolean).sort()];
+  // 一覧を差し替えたときに、選んでいた値が無くなっていたら解除する
+  if (grades.indexOf(kkFilter.grade) < 0)     kkFilter.grade = '';
+  if (subjects.indexOf(kkFilter.subject) < 0) kkFilter.subject = '';
+  document.getElementById('kk-grade-row').innerHTML =
+    '<span class="filter-label">学年</span>' +
+    grades.map(g => `<button class="filter-btn${g===kkFilter.grade?' active':''}" style="--active-color:#1565C0" onclick="setKkFilter('grade','${escAttr(g)}')" id="kk-grade-${g||'all'}">${g||'全学年'}</button>`).join('');
+  document.getElementById('kk-subj-row').innerHTML =
+    '<span class="filter-label">教科</span>' +
+    subjects.map(s => `<button class="filter-btn${s===kkFilter.subject?' active':''}" style="--active-color:#1565C0" onclick="setKkFilter('subject','${escAttr(s)}')" id="kk-subj-${s||'all'}">${s||'全教科'}</button>`).join('');
+}
+
+function setKkFilter(key, val) {
+  kkFilter[key] = val;
+  const prefix = key === 'grade' ? 'kk-grade-' : 'kk-subj-';
+  document.querySelectorAll('[id^="' + prefix + '"]').forEach(b => {
+    const bv = b.id.replace(prefix, '').replace(/^all$/, '');
+    b.classList.toggle('active', bv === val);
+  });
+  renderKoukouCards();
+}
+
+function renderKoukouCards() {
+  const grid = document.getElementById('koukou-grid');
+  let f = koukouEntries;
+  if (kkFilter.grade)   f = f.filter(e => e.grade   === kkFilter.grade);
+  if (kkFilter.subject) f = f.filter(e => e.subject === kkFilter.subject);
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当するデータがありません</p>';
+    return;
+  }
+  const isTeacher = localStorage.getItem('teacherMode') === '1';
+  grid.innerHTML = f.map(e => {
+    const checked = koukouCheckedMap.has(e.id);
+    return `<div class="entry-card${checked ? ' is-checked' : ''}" id="kk-card-${escAttr(e.id)}" style="${checked ? 'border-left-color:#2E7D32' : ''}">
+      <label class="card-check" title="選択" onclick="event.stopPropagation()">
+        <input type="checkbox" class="card-checkbox" style="accent-color:#2E7D32"${checked ? ' checked' : ''}
+          onchange="onKoukouCheck('${escAttr(e.id)}',this.checked,'${escAttr(e.title)}','${escAttr(e.formUrl)}','${escAttr(e.subject)}','${escAttr(e.grade)}')">
+      </label>
+      <div class="card-badges">
+        ${e.grade   ? `<span class="badge badge-grade">${escHtml(e.grade)}</span>` : ''}
+        ${e.subject ? `<span class="badge" style="background:#e8f5e9;color:#1b5e20">${escHtml(e.subject)}</span>` : ''}
+      </div>
+      <div class="card-unit">${escHtml(e.title)}</div>
+      <div class="card-actions">
+        ${e.formUrl  ? `<a class="btn-action btn-pdf" href="${escAttr(e.formUrl)}" target="_blank" rel="noopener">📝 問題を開く</a>` : ''}
+        ${isTeacher && e.adminUrl ? `<a class="btn-action" href="${escAttr(e.adminUrl)}" target="_blank" rel="noopener" style="background:#fff3e0;color:#bf360c">🔧 管理URL</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// GAS Web Appは同時に複数リクエストを受けると同時実行数の制限で
+// 極端に遅くなる/エラーになることがあるため（実測: 単体3秒 → 同時実行で
+// 17秒・72秒後に404等）、4タブ分を Promise.all で同時に投げず、
+// 「開いたタブを最優先で取得→残りは1つずつ順番にバックグラウンド取得」にする。
+const ARCHIVE_LOADED = { kakomon: false, eiken: false, daigaku: false, moshi: false, koritsu: false };
+const ARCHIVE_RENDERERS = { kakomon: renderKakomonCards, eiken: renderEikenCards, daigaku: renderDaigakuCards, moshi: renderMoshiCards, koritsu: renderKoritsuTable };
+const ARCHIVE_FETCHERS = {
+  kakomon: async () => {
+    kakomonEntries = await _archiveData('kakomon');
+    _buildKakomonFilters();
+  },
+  eiken: async () => {
+    eikenEntries = await _archiveData('eiken');
+    _buildEikenYears();
+  },
+  daigaku: async () => {
+    daigakuEntries = await _archiveData('daigaku');
+    _buildDaigakuYears();
+    _buildDaigakuSubjects();
+    _buildDaigakuTopics();
+  },
+  moshi: async () => {
+    moshiEntries = await _archiveData('moshi');
+    _buildMoshiFilters();
+  },
+  koritsu: async () => {
+    koritsuEntries = await _archiveData('koritsu');
+    _computeKoritsuRanges();
+    _buildKoritsuFilters();
+  },
+};
+
+let _archivePrefetchStarted = false;
+
+// 過去問の一覧は日に1回ほどしか変わらない。半日以内にしまったものがあれば
+// それをそのまま使い、裏で取り直して次に開いたとき用にしまう。
+// ⚠ 取り直した一覧をその場で画面に当て直さない。ボタンを作る関数の多くが
+//   足していく作り（年度の選択肢など）で、2回呼ぶと同じボタンが2つ並ぶ。
+const ARCHIVE_LOCAL_MAX_AGE = 12 * 60 * 60 * 1000;
+async function _archiveData(key) {
+  const cached = _listCacheGet(key, ARCHIVE_LOCAL_MAX_AGE);
+  if (cached) {
+    gasList(key).catch(e => console.warn('過去問一覧の更新に失敗(' + key + '):', e));
+    return cached.data;
+  }
+  return gasList(key);
+}
+
+async function initArchive(tab) {
+  const renderNow = tab || 'kakomon';
+  const gridId = ARCHIVE_CONFIG[renderNow].gridId;
+
+  if (!ARCHIVE_LOADED[renderNow]) {
+    document.getElementById(gridId).innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
+    try {
+      await ARCHIVE_FETCHERS[renderNow]();
+      ARCHIVE_LOADED[renderNow] = true;
+    } catch (err) {
+      console.error('アーカイブデータ取得エラー(' + renderNow + '):', err);
+      document.getElementById(gridId).innerHTML =
+        '<p style="color:#c62828;padding:40px 0;text-align:center;grid-column:1/-1">読み込みに失敗しました。タブを開き直すと再試行します</p>';
+      showToast(ARCHIVE_CONFIG[renderNow].label + 'の取得に失敗しました', 'error');
+      return;
+    }
+  }
+  ARCHIVE_RENDERERS[renderNow]();
+  _prefetchRemainingArchiveTabs();
+}
+
+// 開いたタブ以外の3つを、輻輳を避けるため同時ではなく1つずつ
+// バックグラウンドで取得してキャッシュしておく（タブ切り替え時に即表示するため）
+async function _prefetchRemainingArchiveTabs() {
+  if (_archivePrefetchStarted) return;
+  _archivePrefetchStarted = true;
+  for (const key of ['kakomon', 'eiken', 'daigaku', 'moshi', 'koritsu']) {
+    if (ARCHIVE_LOADED[key]) continue;
+    try {
+      await ARCHIVE_FETCHERS[key]();
+      ARCHIVE_LOADED[key] = true;
+    } catch (err) {
+      console.error('アーカイブ事前取得に失敗(' + key + '):', err);
+      // 静かに失敗させる。ARCHIVE_LOADEDをfalseのままにしておけば
+      // 実際にそのタブを開いた時にinitArchiveが再試行してくれる
+    }
+  }
+}
+
+// ---- 定期テスト ----
+const KAK_SCHOOL_ORDER  = ['鈴峰', '中部', '亀山', '平田野', '白鳥', '関', '海星', '常盤', '愛知教育大学付属中'];
+const KAK_SUBJECT_ORDER = ['国語', '数学', '社会', '英語', '理科', '音楽', '技術', '家庭', '美術', '体育'];
+// 定期テストの5つを学校の1年の順に並べ、それ以外（実力テスト・宿題テストなど）は
+// そのうしろに五十音で置く。⚠ ここに書いていない種類も必ず出すこと。
+// 一覧で絞ると、Notion に「種類」タグが足されるたびにサイトから消える。
+const KAK_TYPE_ORDER    = ['1学期中間', '1学期期末', '2学期中間', '2学期期末', '学年末'];
+// 「実力テスト」ボタンは第何回かに関係なく実力テストを全部出す（塾長 2026-09-21）。
+// 第1回・第2回…のボタンは残す。回ごとに見たいこともあるため。
+const KAK_JITSURYOKU = '実力テスト';
+function _kakTypeMatch(entryType, want) {
+  if (!want) return true;
+  if (want === KAK_JITSURYOKU) return /実力/.test(entryType || '');
+  return entryType === want;
+}
+
+function _sortByPriority(values, order) {
+  return values.slice().sort((a, b) => {
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b, 'ja');
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+
+function _buildKakomonFilters() {
+  const schools   = _sortByPriority([...new Set(kakomonEntries.map(e => e.school))].filter(Boolean), KAK_SCHOOL_ORDER);
+  const subjects  = _sortByPriority([...new Set(kakomonEntries.map(e => e.subject))].filter(Boolean), KAK_SUBJECT_ORDER);
+  const grades    = [...new Set(kakomonEntries.map(e => e.grade))].filter(Boolean).sort();
+  let testTypes = _sortByPriority([...new Set(kakomonEntries.map(e => e.testType))].filter(Boolean), KAK_TYPE_ORDER);
+  // 実力テストが1つでもあれば、まとめのボタンを第1回…の直前に置く
+  const firstJ = testTypes.findIndex(t => /実力/.test(t));
+  if (firstJ >= 0) {
+    testTypes = testTypes.filter(t => t !== KAK_JITSURYOKU);
+    testTypes.splice(testTypes.findIndex(t => /実力/.test(t)), 0, KAK_JITSURYOKU);
+  }
+  const years     = [...new Set(kakomonEntries.map(e => e.year))].filter(Boolean).sort().reverse();
+  const PURPLE = '#4527a0';
+
+  // 813件全件を初期描画すると重いため、初回のみ最新年度をデフォルト選択にする
+  // （「全年度」ボタンでいつでも全件表示に戻せる）
+  if (!kakFilter.year && years.length) kakFilter.year = years[0];
+
+  function makeBtn(val, label, containerId, filterKey, color) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + ((!kakFilter[filterKey] && val === '') || kakFilter[filterKey] === val ? ' active' : '');
+    btn.style.setProperty('--active-color', color || PURPLE);
+    btn.textContent = label;
+    btn.dataset.value = val;
+    btn.onclick = () => setKakFilter(filterKey, val);
+    document.getElementById(containerId).appendChild(btn);
+  }
+
+  document.getElementById('kak-school-filters').innerHTML = '';
+  makeBtn('', '全学校', 'kak-school-filters', 'school', PURPLE);
+  schools.forEach(s => makeBtn(s, s, 'kak-school-filters', 'school', PURPLE));
+
+  document.getElementById('kak-subject-filters').innerHTML = '';
+  makeBtn('', '全教科', 'kak-subject-filters', 'subject', PURPLE);
+  subjects.forEach(s => makeBtn(s, s, 'kak-subject-filters', 'subject', '#1565C0'));
+
+  const gc = document.getElementById('kak-grade-container');
+  gc.innerHTML = '';
+  makeBtn('', '全学年', 'kak-grade-container', 'grade', PURPLE);
+  grades.forEach(g => makeBtn(g, g, 'kak-grade-container', 'grade', PURPLE));
+
+  const tc = document.getElementById('kak-type-container');
+  tc.innerHTML = '';
+  makeBtn('', '全種類', 'kak-type-container', 'testType', '#4a148c');
+  testTypes.forEach(t => makeBtn(t, t, 'kak-type-container', 'testType', '#4a148c'));
+
+  const yc = document.getElementById('kak-year-container');
+  yc.innerHTML = '';
+  makeBtn('', '全年度', 'kak-year-container', 'year', '#e65100');
+  years.forEach(y => makeBtn(y, y, 'kak-year-container', 'year', '#e65100'));
+}
+
+function setKakFilter(key, val) {
+  kakFilter[key] = val;
+  const containerMap = {
+    school  : 'kak-school-filters',
+    subject : 'kak-subject-filters',
+    grade   : 'kak-grade-container',
+    testType: 'kak-type-container',
+    year    : 'kak-year-container',
+  };
+  const cid = containerMap[key];
+  if (cid) {
+    document.querySelectorAll('#' + cid + ' .filter-btn').forEach(b => {
+      b.classList.toggle('active', (b.dataset.value || '') === val);
+    });
+  }
+  renderKakomonCards();
+}
+
+// ⚠ 引数は I列（単元タグ）。答案の有無は別の列（見出し「答案」）で、
+//   そちらは _kakAnswerBadge が出す。混ぜないこと。
+function _answerBadge(unit) {
+  if (!unit) return '';
+  const map = {
+    '模範解答': ['#e8f5e9', '#1b5e20', '模範解答あり'],
+    '生徒答案': ['#e3f2fd', '#1565c0', '生徒答案'],
+    '答案なし': ['#fce4ec', '#880e4f', '模範解答なし'],
+  };
+  const [bg, fg, label] = map[unit] || ['#f5f5f5', '#616161', unit];
+  return `<span class="badge" style="background:${bg};color:${fg}">${escHtml(label)}</span>`;
+}
+
+// 解答が付いているか（シートの「答案」列）。空のときは何も出さない
+// ——「分からない」を「解答つき」と読める形にしないため。
+function _kakAnswerBadge(answer) {
+  const map = {
+    '模範解答': ['#e8f5e9', '#1b5e20', '✓ 模範解答あり'],
+    '一部解答': ['#fff8e1', '#e65100', '△ 一部だけ解答あり'],
+    '生徒答案': ['#e3f2fd', '#1565c0', '✎ 生徒の答案'],
+    '答案なし': ['#fce4ec', '#880e4f', '✕ 模範解答なし'],
+  };
+  const hit = map[answer];
+  if (!hit) return '';
+  return `<span class="badge" style="background:${hit[0]};color:${hit[1]}">${escHtml(hit[2])}</span>`;
+}
+
+// ---- 大学入試過去問 難易度★（5段階、0.5刻み対応） ----
+function _starRatingHtml(value) {
+  const v = Number(value) || 0;
+  if (v <= 0) return '';
+  const pct = Math.max(0, Math.min(100, (v / 5) * 100));
+  return '<span class="star-rating" title="難易度: ' + escAttr(String(v)) + '">' +
+    '<span class="star-bg">★★★★★</span>' +
+    '<span class="star-fg" style="width:' + pct + '%">★★★★★</span>' +
+    '</span>';
+}
+
+// ---- 大学入試過去問 国公私区分バッジ ----
+function _categoryBadge(category) {
+  if (!category) return '';
+  const map = {
+    '国立': ['#e8f5e9', '#1b5e20'],
+    '公立': ['#e3f2fd', '#1565c0'],
+    '私立': ['#fff3e0', '#e65100'],
+  };
+  const [bg, fg] = map[category] || ['#f5f5f5', '#616161'];
+  return `<span class="badge" style="background:${bg};color:${fg}">${escHtml(category)}</span>`;
+}
+
+// ---- 大学入試過去問 分野タグ（大問ごと） ----
+//
+//  「大問3 数列」のように大問番号とセットで出す。分野で絞り込んだあと
+//  PDFのどこを開けばいいのかが分からないと、結局全部読むことになるため。
+function _daigakuTopicsHtml(entry) {
+  const sections = entry.sections || [];
+  if (!sections.length) return '';
+  const chips = sections.map((s, i) => {
+    const part   = s.part || ('大問' + (i + 1));
+    const topics = (s.topics || []).join(' / ');
+    if (!topics) return '';
+    const hit = (s.topics || []).includes(dgFilter.topic);
+    return `<span class="badge" style="background:${hit ? '#b2dfdb' : '#e0f2f1'};color:#00695c;${hit ? 'font-weight:700' : ''}">`
+         + `${escHtml(part)} ${escHtml(topics)}</span>`;
+  }).join('');
+  return chips ? `<div class="card-badges" style="margin-top:6px">${chips}</div>` : '';
+}
+
+function renderKakomonCards() {
+  const grid = document.getElementById('kakomon-grid');
+  let f = kakomonEntries;
+  if (kakFilter.school)   f = f.filter(e => e.school   === kakFilter.school);
+  if (kakFilter.subject)  f = f.filter(e => e.subject  === kakFilter.subject);
+  if (kakFilter.grade)    f = f.filter(e => e.grade    === kakFilter.grade);
+  if (kakFilter.testType) f = f.filter(e => _kakTypeMatch(e.testType, kakFilter.testType));
+  if (kakFilter.year)     f = f.filter(e => e.year     === kakFilter.year);
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当するデータがありません</p>';
+    return;
+  }
+  grid.innerHTML = f.map(e => `<div class="entry-card${archiveCheckedIds.kakomon.has(e.id) ? ' is-checked' : ''}" id="ark-kak-${escAttr(e.id)}">
+    <label class="card-check" title="テスト作成に使う" onclick="event.stopPropagation()">
+      <input type="checkbox" class="card-checkbox"${archiveCheckedIds.kakomon.has(e.id) ? ' checked' : ''}
+        onchange="onArchiveCheck('kakomon','${escAttr(e.id)}',this.checked)">
+    </label>
+    <div class="card-badges">
+      ${e.year    ? `<span class="badge" style="background:#e8eaf6;color:#283593">${escHtml(e.year)}</span>` : ''}
+      ${e.grade   ? `<span class="badge badge-grade">${escHtml(e.grade)}</span>` : ''}
+      <span class="badge" style="background:#fce4ec;color:#880e4f">${escHtml(e.school)}</span>
+      <span class="badge" style="background:#e3f2fd;color:#0d47a1">${escHtml(e.subject)}</span>
+      <span class="badge" style="background:#f3e5f5;color:#4a148c">${escHtml(e.testType)}</span>
+      ${_kakAnswerBadge(e.answer)}
+      ${_answerBadge(e.unit)}
+    </div>
+    ${e.driveUrl ? `<img class="card-thumb" src="${_driveThumb(e.driveUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="card-unit">${escHtml(e.school)} ${escHtml(e.testType)}</div>
+    <div class="card-actions">
+      ${e.driveUrl ? `<a class="btn-action btn-pdf" href="${escAttr(e.driveUrl)}" target="_blank" rel="noopener">📄 PDFを開く</a>` : ''}
+    </div>
+  </div>`).join('');
+}
+
+// ---- 英検 ----
+function _buildEikenYears() {
+  const years = [...new Set(eikenEntries.map(e => e.year))].filter(Boolean).sort().reverse();
+  const sel = document.getElementById('ei-year-select');
+  years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y + '年度'; sel.appendChild(o); });
+}
+
+function setEiFilter(key, val) {
+  eiFilter[key] = val;
+  if (key === 'level') {
+    const lvMap = { 'all': '', '1': '1級', 'j1': '準1級', '2': '2級', 'j2': '準2級', '3': '3級', '4': '4級', '5': '5級' };
+    document.querySelectorAll('[id^="ei-level-"]').forEach(b => {
+      const bv = lvMap[b.id.replace('ei-level-', '')] ?? '';
+      b.classList.toggle('active', bv === val);
+    });
+  }
+  renderEikenCards();
+}
+
+function renderEikenCards() {
+  const grid = document.getElementById('eiken-grid');
+  let f = [...eikenEntries];
+  if (eiFilter.level) f = f.filter(e => e.level === eiFilter.level);
+  if (eiFilter.year)  f = f.filter(e => e.year  === eiFilter.year);
+  f.sort((a, b) => b.year.localeCompare(a.year) || a.level.localeCompare(b.level));
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当するデータがありません</p>';
+    return;
+  }
+  grid.innerHTML = f.map(e => `<div class="entry-card${archiveCheckedIds.eiken.has(e.id) ? ' is-checked' : ''}" id="ark-ei-${escAttr(e.id)}">
+    <label class="card-check" title="テスト作成に使う" onclick="event.stopPropagation()">
+      <input type="checkbox" class="card-checkbox"${archiveCheckedIds.eiken.has(e.id) ? ' checked' : ''}
+        onchange="onArchiveCheck('eiken','${escAttr(e.id)}',this.checked)">
+    </label>
+    <div class="card-badges">
+      <span class="badge" style="background:#e8f5e9;color:#1b5e20;font-size:.9rem;font-weight:800">英検${e.level}</span>
+      <span class="badge badge-grade">${e.year}年度 ${e.session}</span>
+    </div>
+    ${e.problemUrl ? `<img class="card-thumb" src="${_driveThumb(e.problemUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="card-unit">英検${e.level} ${e.year}年度 ${e.session}</div>
+    <div class="card-actions">
+      ${e.problemUrl ? `<a class="btn-action btn-pdf" href="${escAttr(e.problemUrl)}" target="_blank" rel="noopener">📄 問題</a>` : ''}
+      ${e.scriptUrl  ? `<a class="btn-action" href="${escAttr(e.scriptUrl)}"  target="_blank" rel="noopener" style="background:#e3f2fd;color:#1565c0">📝 スクリプト</a>` : ''}
+      ${e.answerUrl  ? `<a class="btn-action btn-ans" href="${escAttr(e.answerUrl)}"  target="_blank" rel="noopener">✅ 解答</a>` : ''}
+      ${(e.audioUrls || []).map((u, i, arr) => `<a class="btn-action" href="${escAttr(u)}" target="_blank" rel="noopener" style="background:#fce4ec;color:#880e4f">🔊 音声${arr.length > 1 ? i + 1 : ''}</a>`).join('')}
+    </div>
+  </div>`).join('');
+}
+
+// ---- 大学入試 ----
+function _buildDaigakuYears() {
+  const years = [...new Set(daigakuEntries.map(e => e.year))].filter(Boolean).sort().reverse();
+  const sel = document.getElementById('dg-year-select');
+  years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y + '年度'; sel.appendChild(o); });
+}
+
+function _buildDaigakuSubjects() {
+  const subjects = [...new Set(daigakuEntries.map(e => e.subject))].filter(Boolean).sort();
+  const colorMap = {
+    '国語': '#C62828', '現代文': '#C62828', '古文': '#E53935', '漢文': '#E53935', '現代語': '#C62828',
+    '数学': '#1565C0',
+    '英語': '#D81B60', 'リーディング': '#D81B60', 'リスニング': '#D81B60',
+    '物理': '#2E7D32', '物理基礎': '#2E7D32', '化学': '#00796B', '化学基礎': '#00796B',
+    '生物': '#558B2F', '生物基礎': '#558B2F', '地学': '#00695C', '地学基礎': '#00695C',
+    '日本史': '#6D4C41', '世界史': '#8D6E63', '地理': '#A1887F',
+    '倫理': '#4E342E', '政治経済': '#5D4037', '政治・経済': '#5D4037', '現代社会': '#795548',
+    '小論文': '#33691E', '情報': '#004D40', 'その他': '#607D8B',
+  };
+  const container = document.getElementById('dg-subj-container');
+  subjects.forEach(s => {
+    const color = colorMap[s] || '#455A64';
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.id = 'dg-subj-' + s;
+    btn.style.cssText = '--active-color:' + color;
+    btn.textContent = s;
+    btn.onclick = () => setDgFilter('subject', s);
+    container.appendChild(btn);
+  });
+}
+
+// 分野ボタンは「今表示されている教科」に実在する分野だけを並べる。
+// 全教科ぶんを一度に並べると数十個になり、しかも教科をまたいだ分野が
+// 隣り合って意味をなさない（三重公立入試DBの学科ボタンと同じ考え方）。
+function _buildDaigakuTopics() {
+  const container = document.getElementById('dg-topic-container');
+  const row       = document.getElementById('dg-topic-row');
+  container.querySelectorAll('.filter-btn:not(#dg-topic-all)').forEach(b => b.remove());
+
+  const pool   = dgFilter.subject ? daigakuEntries.filter(e => e.subject === dgFilter.subject) : daigakuEntries;
+  const counts = new Map();
+  pool.forEach(e => (e.topics || []).forEach(t => counts.set(t, (counts.get(t) || 0) + 1)));
+
+  // 分野タグはまだ付いていない行が多いので、1つも無ければ行ごと隠す
+  if (!counts.size) {
+    row.style.display = 'none';
+    if (dgFilter.topic) { dgFilter.topic = ''; }
+    return;
+  }
+  row.style.display = '';
+
+  // 件数の多い順。同数なら名前順（表示が実行のたびに入れ替わらないように）
+  [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .forEach(([topic, n]) => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (topic === dgFilter.topic ? ' active' : '');
+      btn.style.cssText = '--active-color:#00695c';
+      btn.dataset.value = topic;
+      btn.textContent = topic + ' (' + n + ')';
+      btn.onclick = () => setDgFilter('topic', topic);
+      container.appendChild(btn);
+    });
+
+  // 教科を切り替えて、選択中の分野が消えた場合は自動で解除する
+  if (dgFilter.topic && !counts.has(dgFilter.topic)) dgFilter.topic = '';
+  container.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', (b.dataset.value || '') === dgFilter.topic);
+  });
+}
+
+function setDgFilter(key, val) {
+  dgFilter[key] = val;
+  if (key === 'subject') {
+    document.querySelectorAll('[id^="dg-subj-"]').forEach(b => {
+      const bv = b.id === 'dg-subj-all' ? '' : b.id.replace('dg-subj-', '');
+      b.classList.toggle('active', bv === val);
+    });
+    _buildDaigakuTopics();   // 教科が変わったら分野ボタンを作り直す
+  }
+  if (key === 'topic') {
+    document.querySelectorAll('#dg-topic-container .filter-btn').forEach(b => {
+      b.classList.toggle('active', (b.dataset.value || '') === val);
+    });
+  }
+  renderDaigakuCards();
+}
+
+function renderDaigakuCards() {
+  const grid = document.getElementById('daigaku-grid');
+  let f = [...daigakuEntries];
+  if (dgFilter.subject)  f = f.filter(e => e.subject === dgFilter.subject);
+  if (dgFilter.year)     f = f.filter(e => e.year    === dgFilter.year);
+  if (dgFilter.topic)    f = f.filter(e => (e.topics || []).includes(dgFilter.topic));
+  if (dgFilter.explOnly) f = f.filter(e => e.hasExplanation);
+  if (dgFilter.keyword) {
+    const kw = dgFilter.keyword.toLowerCase();
+    // 「関西大学」で検索したときに「関西大学2」「関西大学3」も拾えるよう、
+    // 表示名と正規化名（universityKey）の両方を見る
+    f = f.filter(e => e.university.toLowerCase().includes(kw)
+                   || (e.universityKey || '').toLowerCase().includes(kw));
+  }
+  f.sort((a, b) => b.year.localeCompare(a.year) || a.university.localeCompare(b.university));
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当するデータがありません</p>';
+    return;
+  }
+  grid.innerHTML = f.map(e => `<div class="entry-card${archiveCheckedIds.daigaku.has(e.id) ? ' is-checked' : ''}" id="ark-dg-${escAttr(e.id)}">
+    <label class="card-check" title="テスト作成に使う" onclick="event.stopPropagation()">
+      <input type="checkbox" class="card-checkbox"${archiveCheckedIds.daigaku.has(e.id) ? ' checked' : ''}
+        onchange="onArchiveCheck('daigaku','${escAttr(e.id)}',this.checked)">
+    </label>
+    <div class="card-badges">
+      <span class="badge" style="background:#ede7f6;color:#4527a0">${e.year}年度</span>
+      <span class="badge badge-grade">${e.subject}</span>
+      ${_categoryBadge(e.category)}
+      ${e.group      ? `<span class="badge" style="background:#eceff1;color:#37474f">${escHtml(e.group)}</span>` : ''}
+      ${e.hensachiRange ? `<span class="badge" style="background:#fce4ec;color:#880e4f">偏差値${escHtml(e.hensachiRange)}</span>` : ''}
+      ${e.prefecture ? `<span class="badge" style="background:#e0f2f1;color:#00695c">${escHtml(e.prefecture)}</span>` : ''}
+    </div>
+    ${e.problemUrl ? `<img class="card-thumb" src="${_driveThumb(e.problemUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="card-unit"${e.faculties && e.faculties.length ? ` title="学部: ${escAttr(e.faculties.join(' / '))}"` : ''}>${e.university}${e.difficulty ? ' ' + _starRatingHtml(e.difficulty) : ''}</div>
+    ${_daigakuTopicsHtml(e)}
+    <div class="card-actions">
+      ${e.problemUrl ? `<a class="btn-action btn-pdf" href="${e.problemUrl}" target="_blank" rel="noopener">📄 問題</a>` : ''}
+      ${e.answerUrl  ? `<a class="btn-action btn-ans" href="${e.answerUrl}"  target="_blank" rel="noopener">✅ 解答</a>` : ''}
+      ${e.hasExplanation ? `<button class="btn-action" onclick="openExplanation('${escAttr(e.id)}','daigaku')" style="background:#f3e5f5;color:#4a148c">🤖 解説</button>` : ''}
+    </div>
+    ${e.updatedAt ? `<div class="card-updated">${e.updatedAt}</div>` : ''}
+  </div>`).join('');
+}
+
+// ---- 三重県模試過去問 ----
+const MS_SUBJECT_ORDER = ['国語', '数学', '英語', '理科', '社会'];
+
+function _buildMoshiFilters() {
+  const grades   = [...new Set(moshiEntries.map(e => e.grade))].filter(Boolean).sort();
+  const subjects = _sortByPriority([...new Set(moshiEntries.map(e => e.subject))].filter(Boolean), MS_SUBJECT_ORDER);
+  const rounds   = [...new Set(moshiEntries.map(e => e.round))].filter(Boolean).sort();
+  const years    = [...new Set(moshiEntries.map(e => e.year))].filter(Boolean).sort().reverse();
+
+  function makeBtn(val, label, containerId, filterKey, color) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + ((!msFilter[filterKey] && val === '') || msFilter[filterKey] === val ? ' active' : '');
+    btn.style.setProperty('--active-color', color);
+    btn.textContent = label;
+    btn.dataset.value = val;
+    btn.onclick = () => setMsFilter(filterKey, val);
+    document.getElementById(containerId).appendChild(btn);
+  }
+
+  const gc = document.getElementById('ms-grade-container');
+  gc.innerHTML = '';
+  makeBtn('', '全学年', 'ms-grade-container', 'grade', '#00838F');
+  grades.forEach(g => makeBtn(g, g, 'ms-grade-container', 'grade', '#00838F'));
+
+  const sc = document.getElementById('ms-subject-container');
+  sc.innerHTML = '';
+  makeBtn('', '全教科', 'ms-subject-container', 'subject', '#1565C0');
+  subjects.forEach(s => makeBtn(s, s, 'ms-subject-container', 'subject', '#1565C0'));
+
+  const rc = document.getElementById('ms-round-container');
+  rc.innerHTML = '';
+  makeBtn('', '全回', 'ms-round-container', 'round', '#4a148c');
+  rounds.forEach(r => makeBtn(r, r, 'ms-round-container', 'round', '#4a148c'));
+
+  const yc = document.getElementById('ms-year-container');
+  yc.innerHTML = '';
+  makeBtn('', '全年度', 'ms-year-container', 'year', '#e65100');
+  years.forEach(y => makeBtn(y, y, 'ms-year-container', 'year', '#e65100'));
+}
+
+function setMsFilter(key, val) {
+  msFilter[key] = val;
+  const containerMap = {
+    grade  : 'ms-grade-container',
+    subject: 'ms-subject-container',
+    round  : 'ms-round-container',
+    year   : 'ms-year-container',
+  };
+  const cid = containerMap[key];
+  if (cid) {
+    document.querySelectorAll('#' + cid + ' .filter-btn').forEach(b => {
+      b.classList.toggle('active', (b.dataset.value || '') === val);
+    });
+  }
+  renderMoshiCards();
+}
+
+function renderMoshiCards() {
+  const grid = document.getElementById('moshi-grid');
+  let f = moshiEntries;
+  if (msFilter.grade)   f = f.filter(e => e.grade   === msFilter.grade);
+  if (msFilter.subject) f = f.filter(e => e.subject === msFilter.subject);
+  if (msFilter.round)   f = f.filter(e => e.round   === msFilter.round);
+  if (msFilter.year)    f = f.filter(e => e.year    === msFilter.year);
+  f.sort((a, b) => b.year.localeCompare(a.year) || a.round.localeCompare(b.round, 'ja') || a.grade.localeCompare(b.grade, 'ja'));
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当するデータがありません</p>';
+    return;
+  }
+  grid.innerHTML = f.map(e => `<div class="entry-card${archiveCheckedIds.moshi.has(e.id) ? ' is-checked' : ''}" id="ark-ms-${escAttr(e.id)}">
+    <label class="card-check" title="テスト作成に使う" onclick="event.stopPropagation()">
+      <input type="checkbox" class="card-checkbox"${archiveCheckedIds.moshi.has(e.id) ? ' checked' : ''}
+        onchange="onArchiveCheck('moshi','${escAttr(e.id)}',this.checked)">
+    </label>
+    <div class="card-badges">
+      <span class="badge" style="background:#e8eaf6;color:#283593">${escHtml(e.year)}年度</span>
+      <span class="badge" style="background:#f3e5f5;color:#4a148c">${escHtml(e.round)}</span>
+      <span class="badge badge-grade">${escHtml(e.grade)}</span>
+      <span class="badge" style="background:#e3f2fd;color:#0d47a1">${escHtml(e.subject)}</span>
+    </div>
+    ${e.problemUrl ? `<img class="card-thumb" src="${_driveThumb(e.problemUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="card-unit">三重県模試 ${escHtml(e.round)} ${escHtml(e.grade)} ${escHtml(e.subject)}</div>
+    <div class="card-actions">
+      ${e.problemUrl ? `<a class="btn-action btn-pdf" href="${escAttr(e.problemUrl)}" target="_blank" rel="noopener">📄 問題</a>` : ''}
+      ${e.answerUrl  ? `<a class="btn-action btn-ans" href="${escAttr(e.answerUrl)}"  target="_blank" rel="noopener">✅ 解答</a>` : ''}
+      ${(e.audioUrls || []).map((u, i, arr) => `<a class="btn-action" href="${escAttr(u)}" target="_blank" rel="noopener" style="background:#fce4ec;color:#880e4f">🔊 リスニング${arr.length > 1 ? i + 1 : ''}</a>`).join('')}
+    </div>
+    ${e.updatedAt ? `<div class="card-updated">${e.updatedAt}</div>` : ''}
+  </div>`).join('');
+}
+
+// ---- 三重公立高校入試データベース ----
+// score/naishinは各グループごとに { minPass, maxFail, minAll, maxAll, passCount, failCount, hasReversal }
+function _computeKoritsuRanges() {
+  const scoreAll = [], naishinAll = [];
+  koritsuEntries.forEach(g => {
+    if (g.score.minAll   !== null) scoreAll.push(g.score.minAll, g.score.maxAll);
+    if (g.naishin.minAll !== null) naishinAll.push(g.naishin.minAll, g.naishin.maxAll);
+  });
+  krScoreRange   = scoreAll.length   ? { min: Math.min(...scoreAll),   max: Math.max(...scoreAll) }   : { min: 0, max: 100 };
+  krNaishinRange = naishinAll.length ? { min: Math.min(...naishinAll), max: Math.max(...naishinAll) } : { min: 0, max: 100 };
+}
+
+function _krMakeFilterBtn(val, label, containerId, filterKey, color) {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn' + ((!krFilter[filterKey] && val === '') || krFilter[filterKey] === val ? ' active' : '');
+  btn.style.setProperty('--active-color', color);
+  btn.textContent = label;
+  btn.dataset.value = val;
+  btn.onclick = () => setKrFilter(filterKey, val);
+  document.getElementById(containerId).appendChild(btn);
+}
+
+// 学科ボタンは「学校が選択されているとき」だけ、その学校に実在するものを表示する。
+// 未選択時に全校分（数十件）を並べると視認性が落ちるため、ヒント文言に留める
+function _buildKoritsuDeptButtons() {
+  const kw = krFilter.school.trim().toLowerCase();
+  const dc = document.getElementById('kr-dept-container');
+  dc.innerHTML = '';
+
+  if (!kw) {
+    krFilter.department = '';
+    dc.innerHTML = '<span style="color:var(--text-sub);font-size:.85rem">学校名を入力すると学科が絞り込めます</span>';
+    return;
+  }
+
+  const scoped = koritsuEntries.filter(e => e.school.toLowerCase().includes(kw));
+  const depts = [...new Set(scoped.map(e => e.department))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ja'));
+
+  if (krFilter.department && !depts.includes(krFilter.department)) krFilter.department = '';
+
+  _krMakeFilterBtn('', '全学科', 'kr-dept-container', 'department', '#00838F');
+  depts.forEach(d => _krMakeFilterBtn(d, d, 'kr-dept-container', 'department', '#00838F'));
+}
+
+function _buildKoritsuFilters() {
+  const schools = [...new Set(koritsuEntries.map(e => e.school))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ja'));
+  document.getElementById('kr-school-list').innerHTML = schools.map(s => `<option value="${escAttr(s)}"></option>`).join('');
+
+  _buildKoritsuDeptButtons();
+
+  const years = [...new Set(koritsuEntries.map(e => e.year))].filter(Boolean).sort().reverse();
+  if (!krFilter.year && years.length) krFilter.year = years[0]; // デフォルトは最新年度（全年度混在だと見づらいため）
+  const yc = document.getElementById('kr-year-container');
+  yc.innerHTML = '';
+  _krMakeFilterBtn('', '全年度', 'kr-year-container', 'year', '#e65100');
+  years.forEach(y => _krMakeFilterBtn(y, y, 'kr-year-container', 'year', '#e65100'));
+}
+
+function setKrFilter(key, val) {
+  krFilter[key] = val;
+  krExpandedKey = null; // フィルターが変わったら開いていた詳細は閉じる
+
+  if (key === 'school') {
+    _buildKoritsuDeptButtons(); // 学校が変わったら学科の選択肢を絞り直す
+  } else {
+    const containerMap = { department: 'kr-dept-container', year: 'kr-year-container' };
+    const cid = containerMap[key];
+    if (cid) {
+      document.querySelectorAll('#' + cid + ' .filter-btn').forEach(b => {
+        b.classList.toggle('active', (b.dataset.value || '') === val);
+      });
+    }
+  }
+  renderKoritsuTable();
+}
+
+function setKrSort(key) {
+  if (krSort.key === key) krSort.dir = krSort.dir === 'asc' ? 'desc' : 'asc';
+  else krSort.dir = 'desc';
+  krSort.key = key;
+  renderKoritsuTable();
+}
+
+// ソート・範囲フィルター用の代表値（合格最低点。全員不合格なら不合格最高点、両方なければnull）
+function _krBorderValue(stats) {
+  if (stats.minPass !== null) return stats.minPass;
+  if (stats.maxFail !== null) return stats.maxFail;
+  return null;
+}
+
+function _krBarHtml(stats, range) {
+  const span = range.max - range.min;
+  if (!span || stats.minAll === null) {
+    return '<span style="color:var(--text-sub);font-size:.78rem">データなし</span>';
+  }
+  const pct = v => Math.max(0, Math.min(100, ((v - range.min) / span) * 100));
+  let segs = '';
+  if (stats.hasReversal) {
+    segs += `<div class="koritsu-bar-seg koritsu-bar-fail" style="left:0;width:${pct(stats.maxFail)}%"></div>`;
+    segs += `<div class="koritsu-bar-seg koritsu-bar-overlap" style="left:${pct(stats.minPass)}%;width:${pct(stats.maxFail) - pct(stats.minPass)}%"></div>`;
+    segs += `<div class="koritsu-bar-seg koritsu-bar-pass" style="left:${pct(stats.maxFail)}%;right:0"></div>`;
+  } else {
+    if (stats.maxFail !== null) segs += `<div class="koritsu-bar-seg koritsu-bar-fail" style="left:0;width:${pct(stats.maxFail)}%"></div>`;
+    if (stats.minPass !== null) segs += `<div class="koritsu-bar-seg koritsu-bar-pass" style="left:${pct(stats.minPass)}%;right:0"></div>`;
+  }
+  const nums = [];
+  nums.push(stats.minPass !== null ? `合格最低 <b>${stats.minPass}</b>` : '合格者なし');
+  nums.push(stats.maxFail !== null ? `不合格最高 <b>${stats.maxFail}</b>` : '不合格者なし');
+  const warn = stats.hasReversal ? '<div class="koritsu-reversal-note">⚠ ボーダー逆転あり</div>' : '';
+  return `<div class="koritsu-bar-track">${segs}</div><div class="koritsu-bar-nums">${nums.join(' ／ ')}</div>${warn}`;
+}
+
+// ============================================================
+//  詳細表示（個々の受験者データ＋ボリュームゾーン分布）
+//  一覧では集計値のみを見せ、開いたときだけ遅延取得する
+// ============================================================
+async function toggleKrDetail(key, year, school, department) {
+  if (krExpandedKey === key) {
+    krExpandedKey = null;
+    renderKoritsuTable();
+    return;
+  }
+  krExpandedKey = key;
+
+  if (!koritsuDetailCache[key]) {
+    koritsuDetailCache[key] = 'loading';
+    renderKoritsuTable();
+    try {
+      // 受験者1人ずつの点数は講師のトークンにだけ返る（元データは生データの公開が禁止）。
+      // トークンはURLに載せない（実行ログとブラウザ履歴に残るため）。
+      const tok = _vdToken();
+      if (!tok) {
+        koritsuDetailCache[key] = 'locked';
+      } else {
+        const res  = await fetch(GAS_ENDPOINT, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'koritsuDetail', token: tok, year, school, department }),
+        });
+        const json = await res.json();
+        if (json.status !== 'ok') throw new Error(json.message || '取得エラー');
+        koritsuDetailCache[key] = json.data.locked ? 'locked' : json.data.entries;
+      }
+    } catch (err) {
+      koritsuDetailCache[key] = 'error';
+    }
+    if (krExpandedKey === key) renderKoritsuTable();
+  } else {
+    renderKoritsuTable();
+  }
+}
+
+// 値の実測範囲を最大8ビンに区切り、ビンごとの合格/不合格数を数える
+function _krHistogramBuckets(entries, key, binCount) {
+  const vals = entries.map(e => e[key]).filter(v => v !== null && v !== undefined);
+  if (!vals.length) return [];
+  const min = Math.min(...vals), max = Math.max(...vals);
+
+  if (min === max) {
+    const pass = entries.filter(e => e[key] === min && e.pass).length;
+    const fail = entries.filter(e => e[key] === min && !e.pass).length;
+    return [{ label: String(min), pass, fail }];
+  }
+
+  const span  = max - min;
+  const n     = Math.max(1, Math.min(binCount, Math.ceil(span) + 1));
+  const width = span / n;
+  const buckets = Array.from({ length: n }, (_, i) => ({
+    lo: min + i * width,
+    hi: i === n - 1 ? max : min + (i + 1) * width,
+    pass: 0, fail: 0,
+  }));
+
+  entries.forEach(e => {
+    const v = e[key];
+    if (v === null || v === undefined) return;
+    let idx = Math.floor((v - min) / width);
+    if (idx >= n) idx = n - 1;
+    if (idx < 0)  idx = 0;
+    if (e.pass) buckets[idx].pass++; else buckets[idx].fail++;
+  });
+
+  return buckets.map(b => ({
+    label: Math.round(b.lo) === Math.round(b.hi) ? String(Math.round(b.lo)) : `${Math.round(b.lo)}〜${Math.round(b.hi)}`,
+    pass: b.pass, fail: b.fail,
+  }));
+}
+
+function _krHistogramHtml(buckets, title) {
+  if (!buckets.length) {
+    return `<div><div class="kr-hist-title">${title}</div><div class="kr-detail-loading">データなし</div></div>`;
+  }
+  const maxCount  = Math.max(...buckets.map(b => b.pass + b.fail), 1);
+  const trackPx   = 90;
+  const cols = buckets.map(b => {
+    const total   = b.pass + b.fail;
+    const totalPx = Math.round((total / maxCount) * trackPx);
+    const passPx  = total ? Math.round((b.pass / total) * totalPx) : 0;
+    const failPx  = totalPx - passPx;
+    return `<div class="kr-hist-track" title="${escAttr(b.label)}: 合格${b.pass}・不合格${b.fail}">
+        <div class="kr-hist-bar" style="height:${totalPx}px">
+          <div class="kr-hist-fail" style="height:${failPx}px"></div>
+          <div class="kr-hist-pass" style="height:${passPx}px"></div>
+        </div>
+      </div>
+      <div class="kr-hist-label">${escHtml(b.label)}</div>`;
+  });
+  return `<div>
+    <div class="kr-hist-title">${title}</div>
+    <div class="kr-hist-chart">${cols.map(c => `<div style="display:flex;flex-direction:column;align-items:center">${c}</div>`).join('')}</div>
+  </div>`;
+}
+
+function _krDetailHtml(key) {
+  const state = koritsuDetailCache[key];
+  if (state === 'loading') return '<div class="kr-detail-loading">読み込み中...</div>';
+  if (state === 'error' || !state) return '<div class="kr-detail-loading">取得に失敗しました。もう一度開いてみてください。</div>';
+  if (state === 'locked') return '<div class="kr-detail-loading">受験者1人ずつの点数は、講師がログインしたときだけ表示します（「🎬 解説動画」タブからログイン）。</div>';
+
+  const entries = state;
+  const scoreBuckets   = _krHistogramBuckets(entries, 'score', 8);
+  const naishinBuckets = _krHistogramBuckets(entries, 'naishin', 8);
+  const sorted = entries.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  const chips = sorted.map(e => {
+    const label = (e.score ?? '?') + ' / ' + (e.naishin ?? '?');
+    return `<span class="kr-chip ${e.pass ? 'kr-chip-pass' : 'kr-chip-fail'}">${escHtml(label)}</span>`;
+  }).join('');
+
+  return `
+    <div class="kr-detail-grid">
+      ${_krHistogramHtml(scoreBuckets, '学力検査点の分布（ボリュームゾーン）')}
+      ${_krHistogramHtml(naishinBuckets, '内申点の分布（ボリュームゾーン）')}
+    </div>
+    <div class="kr-hist-legend"><span class="kr-legend-pass">合格</span><span class="kr-legend-fail">不合格</span></div>
+    <div class="kr-detail-sub">個々のデータ（学力検査点 / 内申点、${entries.length}件、学力検査点の高い順）</div>
+    <div class="kr-chip-wrap">${chips}</div>
+  `;
+}
+
+function renderKoritsuTable() {
+  const wrap = document.getElementById('koritsu-table-wrap');
+  let f = koritsuEntries;
+  if (krFilter.school)     { const kw = krFilter.school.toLowerCase(); f = f.filter(e => e.school.toLowerCase().includes(kw)); }
+  if (krFilter.department) f = f.filter(e => e.department === krFilter.department);
+  if (krFilter.year)       f = f.filter(e => e.year === krFilter.year);
+  if (krFilter.scoreMin   !== '') f = f.filter(e => e.score.minPass   !== null && e.score.minPass   >= Number(krFilter.scoreMin));
+  if (krFilter.scoreMax   !== '') f = f.filter(e => e.score.minPass   !== null && e.score.minPass   <= Number(krFilter.scoreMax));
+  if (krFilter.naishinMin !== '') f = f.filter(e => e.naishin.minPass !== null && e.naishin.minPass >= Number(krFilter.naishinMin));
+  if (krFilter.naishinMax !== '') f = f.filter(e => e.naishin.minPass !== null && e.naishin.minPass <= Number(krFilter.naishinMax));
+
+  const sortKey = krSort.key, dir = krSort.dir === 'asc' ? 1 : -1;
+  f = f.slice().sort((a, b) => {
+    let av, bv;
+    if      (sortKey === 'year')    { av = a.year; bv = b.year; }
+    else if (sortKey === 'school')  { av = a.school; bv = b.school; }
+    else if (sortKey === 'dept')    { av = a.department; bv = b.department; }
+    else if (sortKey === 'naishin') { av = _krBorderValue(a.naishin) ?? -1; bv = _krBorderValue(b.naishin) ?? -1; }
+    else                            { av = _krBorderValue(a.score)   ?? -1; bv = _krBorderValue(b.score)   ?? -1; }
+    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'ja') : av - bv;
+    if (cmp !== 0) return cmp * dir;
+    // 同値の場合は常に学校→学科→年度(新しい順)でまとめて並べる（見やすさ優先）
+    const sc = a.school.localeCompare(b.school, 'ja'); if (sc) return sc;
+    const dc = a.department.localeCompare(b.department, 'ja'); if (dc) return dc;
+    return b.year.localeCompare(a.year);
+  });
+
+  if (!f.length) {
+    wrap.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center">該当するデータがありません</p>';
+    return;
+  }
+
+  const arrow = key => krSort.key === key ? (krSort.dir === 'asc' ? '▲' : '▼') : '';
+  wrap.innerHTML = `
+    <table class="koritsu-table">
+      <thead><tr>
+        <th></th>
+        <th onclick="setKrSort('year')">年度<span class="sort-arrow">${arrow('year')}</span></th>
+        <th onclick="setKrSort('school')">学校<span class="sort-arrow">${arrow('school')}</span></th>
+        <th onclick="setKrSort('dept')">学科<span class="sort-arrow">${arrow('dept')}</span></th>
+        <th onclick="setKrSort('score')">学力検査点ボーダー<span class="sort-arrow">${arrow('score')}</span></th>
+        <th onclick="setKrSort('naishin')">内申点ボーダー<span class="sort-arrow">${arrow('naishin')}</span></th>
+        <th>人数</th>
+      </tr></thead>
+      <tbody>
+        ${f.map(e => {
+          const key = `${e.year}__${e.school}__${e.department}`;
+          const open = krExpandedKey === key;
+          const clickArgs = `'${key.replace(/'/g, "\\'")}','${e.year.replace(/'/g, "\\'")}','${e.school.replace(/'/g, "\\'")}','${e.department.replace(/'/g, "\\'")}'`;
+          const rowHtml = `<tr class="kr-row${open ? ' active' : ''}" onclick="toggleKrDetail(${clickArgs})">
+              <td class="kr-expand-cell">${open ? '▾' : '▸'}</td>
+              <td>${escHtml(e.year)}</td>
+              <td>${escHtml(e.school)}</td>
+              <td>${escHtml(e.department)}</td>
+              <td><div class="koritsu-border-cell">${_krBarHtml(e.score, krScoreRange)}</div></td>
+              <td><div class="koritsu-border-cell">${_krBarHtml(e.naishin, krNaishinRange)}</div></td>
+              <td class="koritsu-count">合格${e.score.passCount}／不合格${e.score.failCount}</td>
+            </tr>`;
+          const detailHtml = open
+            ? `<tr class="koritsu-detail-row"><td colspan="7">${_krDetailHtml(key)}</td></tr>`
+            : '';
+          return rowHtml + detailHtml;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ====================================================
+//  解説動画
+// ====================================================
+//  公開動画はログイン無しで見える。オプション動画はトークンが通ったときだけ
+//  GASが返してくる。返ってこない限りブラウザ側にはタイトルもURLも存在しない
+//  ので、静的ファイルを覗いても一覧は取れない。
+const VIDEO_TOKEN_KEY = 'videoToken';
+
+let vdPublic = [], vdOption = [], vdLoaded = false, vdAuthName = '';
+let vdFilter = { q: '', series: '', kind: '', subject: '', topic: '', grade: '', year: '' };
+// 単元ボタンの並び順（教科 → 単元の配列）。サーバが VT_TOPIC_ORDER を渡してくる。
+// 画面側に同じ表を置くと、GAS側の単元名を直したときに片方だけ古くなる。
+let vdTopicOrder = {};
+
+// 1本に複数の単元が付くことがある（手直しの列に ／ 区切りで書いたとき）
+function _vdTopicsOf(v) {
+  return String(v.topic || '').split('／').map(x => x.trim()).filter(Boolean);
+}
+
+function _vdToken() { try { return localStorage.getItem(VIDEO_TOKEN_KEY) || ''; } catch (e) { return ''; } }
+
+async function _vdPost(payload) {
+  // ヘッダを付けないのは意図的。付けるとCORSのプリフライトが飛び、
+  // GASのウェブアプリはそれに応えられない（既存の resetChecked 等と同じ形）。
+  const res  = await fetch(GAS_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
+  const json = await res.json();
+  if (json.status !== 'ok') throw new Error(json.message || '通信エラー');
+  return json.data;
+}
+
+async function initVideo(force = false) {
+  if (vdLoaded && !force) return;
+  const grid = document.getElementById('vd-grid');
+  try {
+    const data = await _vdPost({ action: 'videos', token: _vdToken() });
+    vdPublic   = data.public || [];
+    vdOption   = data.option || [];
+    vdTopicOrder = data.topicOrder || {};
+    vdAuthName = (data.auth && data.auth.ok) ? (data.auth.name || '') : '';
+
+    // トークンが期限切れ・無効化されていたら消しておく。残しておくと
+    // 「ログイン済みのはずなのに何も増えない」状態になって原因が分からない。
+    if (!vdAuthName && _vdToken() && data.auth && data.auth.reason) {
+      try { localStorage.removeItem(VIDEO_TOKEN_KEY); } catch (e) {}
+      const errBox = document.getElementById('vd-login-err');
+      if (errBox) errBox.textContent = data.auth.reason;
+    }
+
+    vdLoaded = true;
+    _buildVdFilters();
+    renderVideoCards();
+  } catch (err) {
+    grid.innerHTML = '<p style="color:#c62828;padding:40px 0;text-align:center;grid-column:1/-1">⚠️ '
+                   + escHtml(err.message) + '</p>';
+  }
+}
+
+function _vdAll() { return vdPublic.concat(vdOption); }
+
+const VD_SUBJECT_COLOR = { 英語: '#D81B60', 数学: '#1565C0', 国語: '#C62828', 理科: '#2E7D32', 社会: '#6D4C41' };
+
+function _vdBuildButtons(containerId, key, allLabel, values, color) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  // 選んでいた値が無くなったら解除する。ログアウトでオプション動画が消えると
+  // 「該当する動画がありません」だけが残り、戻すボタンも画面に無くなるため。
+  if (vdFilter[key] && values.indexOf(vdFilter[key]) < 0) vdFilter[key] = '';
+  const cur = vdFilter[key] || '';
+  box.innerHTML = [''].concat(values).map(v =>
+    `<button class="filter-btn${v === cur ? ' active' : ''}" ` +
+    `style="--active-color:${(v && VD_SUBJECT_COLOR[v]) || color}" ` +
+    `data-value="${escAttr(v)}">${v ? escHtml(v) : allLabel}</button>`
+  ).join('');
+  // onclick を文字列で埋め込まず、data-value から読む。シリーズ名は先生が
+  // YouTubeで付けた再生リスト名そのままなので、「Let's」のような
+  // アポストロフィが入ると onclick の文字列リテラルが壊れる。
+  box.querySelectorAll('.filter-btn').forEach(b => {
+    b.onclick = () => setVdFilter(key, b.dataset.value);
+  });
+}
+
+// 並び順は決め打ちにする。出現順のままだと「英語 数学 理科 その他 社会 国語」
+// のように学校で習う順と違う並びになり、目当てのボタンを目で探すことになる。
+// データに出てこない値は並べない（空振りするボタンを作らない）ため、
+// 決めた順に並べたうえで実在するものだけ残す。
+function _vdInOrder(values, order) {
+  const known = order.filter(x => values.indexOf(x) >= 0);
+  const rest  = values.filter(x => order.indexOf(x) < 0).sort();  // 想定外の値は後ろへ
+  return known.concat(rest);
+}
+
+// 単元の行。選んでいる教科の動画に付いている単元だけを、分野ごとの順に並べる。
+// 教科を選んでいなければ行ごと隠す。
+function _buildVdTopicFilter() {
+  const row = document.getElementById('vd-topic-row');
+  const subject = vdFilter.subject;
+  const seen = [];
+  if (subject) {
+    _vdAll().forEach(v => {
+      if (v.subject !== subject) return;
+      _vdTopicsOf(v).forEach(t => { if (seen.indexOf(t) < 0) seen.push(t); });
+    });
+  }
+  const values = _vdInOrder(seen, vdTopicOrder[subject] || []);
+  if (row) row.style.display = values.length ? '' : 'none';
+  _vdBuildButtons('vd-topic-container', 'topic', '全単元', values, VD_SUBJECT_COLOR[subject] || '#455a64');
+}
+
+// フィルタのボタンは実データから作る。決め打ちにすると、まだ動画が無い
+// 教科のボタンが並んだり、逆に新しい種別が出たときに押せなくなる。
+function _buildVdFilters() {
+  const all = _vdAll();
+  const uniq = (key) => {
+    const seen = [];
+    all.forEach(v => { const x = String(v[key] || '').trim(); if (x && seen.indexOf(x) < 0) seen.push(x); });
+    return seen;
+  };
+
+  const build = _vdBuildButtons;
+  const inOrder = _vdInOrder;
+  const GRADES = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+
+  // シリーズは1本の動画が複数の再生リストに入ることがあるので「／」で分かれている
+  const seriesValues = (() => {
+    const seen = [];
+    all.forEach(v => String(v.series || '').split('／').forEach(x => {
+      x = x.trim();
+      if (x && seen.indexOf(x) < 0) seen.push(x);
+    }));
+    return seen.sort((a, b) => a.localeCompare(b, 'ja'));
+  })();
+  const seriesRow = document.getElementById('vd-series-row');
+  if (seriesRow) seriesRow.style.display = seriesValues.length ? '' : 'none';
+  build('vd-series-container',  'series',  '全シリーズ', seriesValues, '#00695C');
+
+  build('vd-kind-container',    'kind',    '全種別',
+        inOrder(uniq('kind'), ['過去問', '単元解説', '進路情報']), '#4527a0');
+  build('vd-subject-container', 'subject', '全教科',
+        inOrder(uniq('subject'), ['英語', '数学', '国語', '理科', '社会', 'その他']), '#1565C0');
+  build('vd-grade-container',   'grade',   '全学年', inOrder(uniq('grade'), GRADES), '#00838F');
+  build('vd-year-container',    'year',    '全年度',
+        uniq('year').sort((a, b) => Number(b) - Number(a)), '#E65100');
+  _buildVdTopicFilter();   // 教科の選択が解除されていれば、ここで隠れる
+}
+
+function setVdFilter(key, value) {
+  vdFilter[key] = value;
+  // 教科を変えたら単元を選び直す。理科の「イオンと化学電池」を選んだまま
+  // 社会に切り替えると、該当0件のまま戻すボタンも無い画面になる。
+  if (key === 'subject') { vdFilter.topic = ''; _buildVdTopicFilter(); }
+  if (key !== 'q') {
+    const box = document.getElementById('vd-' + key + '-container');
+    if (box) box.querySelectorAll('.filter-btn')
+      .forEach(b => b.classList.toggle('active', b.dataset.value === value));
+  }
+  renderVideoCards();
+}
+
+function renderVideoCards() {
+  const grid = document.getElementById('vd-grid');
+  const statusBox  = document.getElementById('vd-status');
+  const loginWrap  = document.getElementById('vd-login-wrap');
+
+  // 状態の帯
+  if (vdAuthName) {
+    statusBox.className = 'video-status on';
+    statusBox.style.display = 'flex';
+    statusBox.innerHTML = `<span>🔓 ${escHtml(vdAuthName)}さん — オプション動画 ${vdOption.length}本が見られます</span>`
+      + `<button onclick="videoLogout()">ログアウト</button>`;
+    loginWrap.style.display = 'none';
+  } else {
+    statusBox.className = 'video-status off';
+    statusBox.style.display = 'flex';
+    statusBox.innerHTML = '<span>🔒 オプション動画は、下のログイン欄からログインすると表示されます</span>';
+    loginWrap.style.display = '';
+  }
+
+  let f = _vdAll();
+  const q = vdFilter.q.trim().toLowerCase();
+  if (q) f = f.filter(v => (v.title + ' ' + v.unit + ' ' + v.subject + ' ' + v.exam + ' ' +
+                             (v.series || '') + ' ' + (v.topic || ''))
+                            .toLowerCase().includes(q));
+  if (vdFilter.series)  f = f.filter(v =>
+    String(v.series || '').split('／').map(x => x.trim()).indexOf(vdFilter.series) >= 0);
+  if (vdFilter.kind)    f = f.filter(v => v.kind    === vdFilter.kind);
+  if (vdFilter.subject) f = f.filter(v => v.subject === vdFilter.subject);
+  if (vdFilter.topic)   f = f.filter(v => _vdTopicsOf(v).indexOf(vdFilter.topic) >= 0);
+  if (vdFilter.grade)   f = f.filter(v => v.grade   === vdFilter.grade);
+  if (vdFilter.year)    f = f.filter(v => String(v.year) === vdFilter.year);
+
+  // 過去問は「年度の新しい順 → 大問の小さい順」。1年分を大問1から順に
+  // 解き進めるのが実際の使い方で、投稿日順に並べると大問がばらける。
+  // 単元で絞ったときも同じ並びにする。「イオンを年度をまたいで解き比べる」ための
+  // 絞り込みなので、投稿日順だと年度が前後して比べにくい。
+  // それ以外は新しい順（YouTubeと同じ感覚で探せる）。
+  // ⚠ 単元解説・進路情報は、単元で絞っても新しい順。同じ単元を撮り直した動画は
+  //   新しいほうが中身を直してある（塾長 2026-10-07）。年度の無い動画どうしを
+  //   年度で並べると順が崩れるので、年度順は過去問どうしだけにする。
+  const byDate = (a, b) => String(b.date || '').localeCompare(String(a.date || ''));
+  if (vdFilter.kind === '過去問' || (vdFilter.topic && !vdFilter.kind)) {
+    f = f.slice().sort((a, b) => {
+      const pa = a.kind === '過去問', pb = b.kind === '過去問';
+      if (pa !== pb) return pa ? -1 : 1;
+      if (!pa) return byDate(a, b);
+      return (Number(b.year) || 0) - (Number(a.year) || 0) ||
+        String(a.subject).localeCompare(String(b.subject), 'ja') ||
+        (Number(a.daimon) || 0) - (Number(b.daimon) || 0);
+    });
+  } else {
+    f = f.slice().sort(byDate);
+  }
+
+  if (!f.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);padding:40px 0;text-align:center;grid-column:1/-1">該当する動画がありません</p>';
+    return;
+  }
+
+  const SUBJECT_BG = {
+    英語: ['#e3f2fd', '#1565C0'], 数学: ['#ffebee', '#B71C1C'], 国語: ['#fff3e0', '#E65100'],
+    理科: ['#e8f5e9', '#1B5E20'], 社会: ['#f3e5f5', '#4A148C']
+  };
+
+  grid.innerHTML = f.map(v => {
+    const c = SUBJECT_BG[v.subject] || ['#eceff1', '#455a64'];
+    return `<div class="video-card" onclick="openVideoModal('${escAttr(v.id)}')">
+      <div class="video-thumb-wrap">
+        <img class="video-thumb" src="${escAttr(v.thumb)}" alt="" loading="lazy"
+             onerror="this.src='https://img.youtube.com/vi/${escAttr(v.id)}/hqdefault.jpg'">
+        <div class="video-play"></div>
+        ${v.scope === 'オプション' ? '<span class="video-opt-tag">オプション</span>' : ''}
+      </div>
+      <div class="video-body">
+        <div class="video-title">${escHtml(v.unit || v.title)}</div>
+        <div class="video-meta">
+          ${v.subject ? `<span class="badge" style="background:${c[0]};color:${c[1]}">${escHtml(v.subject)}</span>` : ''}
+          ${v.grade   ? `<span class="badge" style="background:#e0f7fa;color:#00838f">${escHtml(v.grade)}</span>` : ''}
+          ${v.year    ? `<span class="badge" style="background:#fff3e0;color:#e65100">${escHtml(v.year)}年度</span>` : ''}
+          ${v.daimon  ? `<span class="badge" style="background:#f1f3f4;color:#5f6368">大問${escHtml(v.daimon)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- 再生 ----------
+function openVideoModal(id) {
+  const v = _vdAll().find(x => x.id === id);
+  if (!v) return;
+
+  const link = (url, label, bg, fg) => url
+    ? `<a href="${escAttr(url)}" target="_blank" rel="noopener" style="background:${bg};color:${fg}">${label}</a>` : '';
+  const attach = [
+    link(v.pdfQ,  '📄 問題PDF',      '#e3f2fd', '#1565c0'),
+    link(v.pdfA,  '✅ 解答・解説PDF', '#e8f5e9', '#1b5e20'),
+    link(v.pdfS,  '📝 答案用紙',      '#f3e5f5', '#4a148c'),
+    link(v.audio, '🎧 リスニング音源', '#fff3e0', '#e65100')
+  ].filter(Boolean).join('');
+
+  document.getElementById('video-modal-title').textContent = v.unit || v.title;
+  document.getElementById('video-modal-body').innerHTML = `
+    <div class="video-player">
+      <iframe src="https://www.youtube.com/embed/${escAttr(v.id)}?rel=0&autoplay=1"
+              title="${escAttr(v.title)}" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowfullscreen></iframe>
+    </div>
+    <div class="video-detail">
+      <div style="font-size:.9rem;line-height:1.6">${escHtml(v.title)}</div>
+      <div class="video-meta">
+        ${v.series ? `<span class="badge" style="background:#e0f2f1;color:#00695c">${escHtml(v.series)}</span>` : ''}
+        ${_vdTopicsOf(v).map(t => `<span class="badge" style="background:#fce4ec;color:#ad1457">${escHtml(t)}</span>`).join('')}
+        ${v.exam   ? `<span class="badge" style="background:#ede7f6;color:#4527a0">${escHtml(v.exam)}</span>` : ''}
+        ${v.year   ? `<span class="badge" style="background:#fff3e0;color:#e65100">${escHtml(v.year)}年度</span>` : ''}
+        ${v.subject? `<span class="badge" style="background:#e3f2fd;color:#1565c0">${escHtml(v.subject)}</span>` : ''}
+        ${v.grade  ? `<span class="badge" style="background:#e0f7fa;color:#00838f">${escHtml(v.grade)}</span>` : ''}
+        ${v.daimon ? `<span class="badge" style="background:#f1f3f4;color:#5f6368">大問${escHtml(v.daimon)}</span>` : ''}
+      </div>
+      ${attach ? `<div class="video-detail-links">${attach}</div>` : ''}
+    </div>`;
+  document.getElementById('video-modal').style.display = 'flex';
+}
+
+function closeVideoModal() {
+  // iframeを空にしてから閉じる。残したままだと音声が鳴り続ける。
+  document.getElementById('video-modal-body').innerHTML = '';
+  document.getElementById('video-modal').style.display = 'none';
+}
+function onVideoModalOverlayClick(e) { if (e.target.id === 'video-modal') closeVideoModal(); }
+
+// ---------- ログイン ----------
+async function doVideoLogin() {
+  const idEl  = document.getElementById('vd-login-id');
+  const pwEl  = document.getElementById('vd-login-pw');
+  const btn   = document.getElementById('vd-login-btn');
+  const errEl = document.getElementById('vd-login-err');
+  errEl.textContent = '';
+
+  const loginId = idEl.value.trim(), passcode = pwEl.value.trim();
+  if (!loginId || !passcode) { errEl.textContent = 'ログインIDとパスワードを入力してください'; return; }
+
+  btn.disabled = true; btn.textContent = '確認中...';
+  try {
+    const r = await _vdPost({ action: 'videoLogin', loginId: loginId, passcode: passcode });
+    if (!r.ok) { errEl.textContent = r.error || 'ログインできませんでした'; return; }
+    try { localStorage.setItem(VIDEO_TOKEN_KEY, r.token); } catch (e) {}
+    _krForgetLocked();
+    pwEl.value = '';
+    await initVideo(true);
+    showToast('ログインしました');
+  } catch (err) {
+    errEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'ログイン';
+  }
+}
+
+function videoLogout() {
+  try { localStorage.removeItem(VIDEO_TOKEN_KEY); } catch (e) {}
+  vdOption = []; vdAuthName = '';
+  _buildVdFilters();
+  renderVideoCards();
+  showToast('ログアウトしました');
+}
+
+// ====================================================
+//  START
+// ====================================================
+if (localStorage.getItem('teacherMode') === '1') applyTeacherMode();
+// 最初に開いたタブ（#video など）の取得を先に済ませてから、問題ライブラリを取りに行く
+const _firstTabLoading = _applyTabFromHash();
+setInterval(() => init(false), AUTO_REFRESH_MS);
+init(true, _firstTabLoading);
+</script>
+
+<!-- ホーム画面に追加の案内（2026-10-23）。スマホで、ホーム画面から開いていないときだけ下に帯を出す。
+     ⚠ 「あとで」は7日出さない（毎回出ると帯ごと読まれなくなる）。PC（講師）には出さない。
+     ⚠ LINE の中のブラウザはホーム画面に追加できないので、まず Safari／Chrome で開き直してもらう（?openExternalBrowser=1）。 -->
+<style>
+  #a2hs { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 1000; display: none;
+          font-size: 14px; line-height: 1.6; color: var(--text); background: #fff; border: 1px solid #d1c4e9;
+          border-radius: 14px; padding: 12px 14px; box-shadow: 0 4px 18px rgba(69,39,160,.2); }
+  #a2hs b.t { display: block; margin-bottom: 2px; }
+  #a2hs .b { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+  #a2hs button, #a2hs a.go { font: inherit; border-radius: 10px; padding: 7px 14px; border: 1px solid #d1c4e9;
+          background: #fff; color: #4527a0; text-decoration: none; cursor: pointer; }
+  #a2hs .go { background: #4527a0 !important; color: #fff !important; border-color: #4527a0 !important; font-weight: 700; }
+</style>
+<div id="a2hs" role="dialog" aria-label="ホーム画面に追加"></div>
+<script>
+(function () {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+  var KEY = 'pdflib.a2hs';
+  var ua = navigator.userAgent;
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/.test(ua);
+  var isLine = /\bLine\//i.test(ua);
+  var standalone = window.navigator.standalone === true ||
+                   (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  var bar = document.getElementById('a2hs');
+  function later() { try { localStorage.setItem(KEY, String(Date.now() + 7 * 86400000)); } catch (e) {} bar.style.display = 'none'; }
+  function snoozed() { try { return Date.now() < Number(localStorage.getItem(KEY) || 0); } catch (e) { return false; } }
+  function show(html) {
+    bar.innerHTML = html + '<div class="b">' + (bar._go || '') + '<button type="button" id="a2hs-later">あとで</button></div>';
+    bar.querySelector('#a2hs-later').onclick = later;
+    var g = bar.querySelector('#a2hs-go'); if (g && bar._onGo) g.onclick = bar._onGo;
+    bar.style.display = 'block';
+  }
+  if (standalone || snoozed() || !(isIOS || isAndroid)) return;
+  var head = '<b class="t">📲 ホーム画面に追加しよう</b>';
+  if (isLine) {
+    var u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1');
+    bar._go = '<a class="go" href="' + u.href.replace(/"/g, '&quot;') + '">ブラウザで開く</a>';
+    show(head + '<div>LINE の中では追加できません。「ブラウザで開く」を押して、開いたページで追加してください。' +
+         'アイコンからアプリのように開けるようになります。</div>');
+    return;
+  }
+  if (isIOS) {
+    show(head + '<div>画面の <b>共有ボタン（□に↑）</b> →「<b>ホーム画面に追加</b>」。' +
+         '次からはアイコンを押すだけで、アプリのように開けます。</div>');
+    return;
+  }
+  // Android の Chrome は、追加できる状態になったら知らせてくれる。そのときだけボタンを出す
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    bar._go = '<button type="button" class="go" id="a2hs-go">追加する</button>';
+    bar._onGo = function () { bar.style.display = 'none'; e.prompt(); };
+    show(head + '<div>アイコンを押すだけで、アプリのように開けるようになります。</div>');
+  });
+  window.addEventListener('appinstalled', function () { bar.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

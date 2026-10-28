@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>集合と命題 ｜ 解説</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#6366f1; --primary-dark:#4f46e5; --primary-light:#e0e7ff;
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+  --text-muted:#64748b; --success:#10b981; --radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:0 16px 64px;background:var(--bg);
+     font-family:'Noto Sans JP',system-ui,sans-serif;color:#1e293b;line-height:1.9}
+header{max-width:820px;margin:0 auto;padding:32px 0 20px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--text-muted);font-size:.9rem;margin:0}
+main{max-width:820px;margin:0 auto}
+.q{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+   padding:22px 24px;margin:0 0 20px;scroll-margin-top:16px}
+.q:target{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.no{display:inline-block;background:var(--primary);color:#fff;font-weight:700;
+    border-radius:999px;padding:2px 14px;font-size:.85rem;margin-bottom:12px}
+.stem{font-size:1.05rem;margin:0 0 14px}
+.ans{display:inline-block;background:var(--success);color:#fff;font-weight:700;
+     border-radius:8px;padding:4px 14px;margin-bottom:16px}
+.blk{margin:14px 0 0;padding-left:14px;border-left:3px solid var(--primary-light)}
+.blk h3{font-size:.92rem;margin:0 0 4px;color:var(--primary-dark)}
+.blk p{margin:0}
+nav{max-width:820px;margin:0 auto 24px;display:flex;flex-wrap:wrap;gap:8px}
+nav a{background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:6px 14px;text-decoration:none;color:var(--primary-dark);font-weight:700;font-size:.9rem}
+nav a:hover{background:var(--primary-light)}
+.katex{font-size:1.05em}
+</style>
+</head>
+<body>
+<header>
+  <h1>数学 03　集合と命題</h1>
+  <p class="sub">解説（全10問）　※問題を解いたあとに読んでください</p>
+</header>
+<nav><a href="#q1">問1</a><a href="#q2">問2</a><a href="#q3">問3</a><a href="#q4">問4</a><a href="#q5">問5</a><a href="#q6">問6</a><a href="#q7">問7</a><a href="#q8">問8</a><a href="#q9">問9</a><a href="#q10">問10</a></nav>
+<main>
+<article class="q" id="q1">
+<span class="no">問 1</span>
+<p class="stem">全体集合を $U = \{1,2,3,\ldots,10\}$、$A = \{2,4,6,8,10\}$、$B = \{3,6,9\}$ とする。<br>このとき $A \cap B$ の要素の個数は ア である。</p>
+<div class="ans">正解　① 1</div>
+<div class="blk"><h3>着眼点</h3><p>共通部分は両方に入っている要素だけを集めたもの。要素が少ないので、書き出して照合すれば確実である。</p></div>
+<div class="blk"><h3>解法</h3><p>$A$ は偶数の集合、$B$ は $3$ の倍数の集合。両方に属するのは $6$ だけである。したがって $A \cap B = \{6\}$ で、要素の個数は $1$。よってア＝1。</p></div>
+<div class="blk"><h3>検算</h3><p>$B$ の要素 $3,\ 6,\ 9$ を一つずつ $A$ と照らすと、$3$ は偶数でないので入らず、$6$ は入り、$9$ も偶数でないので入らない。数え落としは無い。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>共通部分と和集合の記号を取り違える誤りが多い。$\cap$ は「かつ」で両方に属するもの、$\cup$ は「または」でどちらかに属するものである。記号の形を「$\cap$ は屋根が閉じていて狭い」と覚えるとよい。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$A$ は $2$ の倍数、$B$ は $3$ の倍数の集合なので、$A \cap B$ は $6$ の倍数の集合にあたる。$10$ 以下の $6$ の倍数は $6$ だけなので、この見方でも同じ答えが出る。</p></div>
+</article>
+<article class="q" id="q2">
+<span class="no">問 2</span>
+<p class="stem">全体集合を $U = \{1,2,3,\ldots,10\}$、$A = \{2,4,6,8,10\}$、$B = \{3,6,9\}$ とする。<br>このとき $A \cup B$ の要素の個数は イ である。</p>
+<div class="ans">正解　⑦ 7</div>
+<div class="blk"><h3>着眼点</h3><p>和集合の個数は、単純に足すと重なりを二重に数えてしまう。重なった分を引く必要がある。</p></div>
+<div class="blk"><h3>解法</h3><p>$A \cup B = \{2,\ 3,\ 4,\ 6,\ 8,\ 9,\ 10\}$ で7個。個数の関係式を使うなら $n(A \cup B) = n(A)+n(B)-n(A \cap B) = 5+3-1 = 7$。よってイ＝7。</p></div>
+<div class="blk"><h3>検算</h3><p>$U$ の $10$ 個の要素のうち、$A$ にも $B$ にも属さないのは $1,\ 5,\ 7$ の3個。$10-3 = 7$ となり一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$5+3 = 8$ としてしまう誤りが最も多い。$6$ は $A$ にも $B$ にも属しているので、そのまま足すと2回数えたことになる。重なりを1回分引くこと。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$n(A \cup B) = n(A)+n(B)-n(A \cap B)$ を包除原理という。3つの集合になると $n(A \cup B \cup C) = n(A)+n(B)+n(C)-n(A \cap B)-n(B \cap C)-n(C \cap A)+n(A \cap B \cap C)$ と、引いて足すが交互に現れる。</p></div>
+</article>
+<article class="q" id="q3">
+<span class="no">問 3</span>
+<p class="stem">全体集合を $U = \{1,2,3,\ldots,10\}$、$A = \{2,4,6,8,10\}$、$B = \{3,6,9\}$ とする。<br>$A$ にも $B$ にも属さない $U$ の要素は ウ 個ある。</p>
+<div class="ans">正解　③ 3</div>
+<div class="blk"><h3>着眼点</h3><p>「$A$ にも $B$ にも属さない」は、$A \cup B$ に属さないということ。全体から和集合を除けばよい。</p></div>
+<div class="blk"><h3>解法</h3><p>前問より $n(A \cup B) = 7$。全体は $10$ 個なので、求める個数は $10-7 = 3$。実際に書き出すと $1,\ 5,\ 7$ の3個である。よってウ＝3。</p></div>
+<div class="blk"><h3>検算</h3><p>$1$ は偶数でも $3$ の倍数でもない。$5$ も $7$ も同様。一方 $2$ から $10$ までの残りはすべて $A$ か $B$ のどちらかに入る。数え落としは無い。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>「$A$ にも $B$ にも属さない」を $A \cap B$ の補集合と取り違える誤りがある。正しくは $A \cup B$ の補集合である。日本語の「にも…にも…ない」は両方を否定しているので、和集合の否定になる。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>ド・モルガンの法則により、$A$ の補集合と $B$ の補集合の共通部分は、$A \cup B$ の補集合に等しい。「両方に属さない」と「和集合に属さない」が同じ内容であることを式で保証しているのがこの法則である。</p></div>
+</article>
+<article class="q" id="q4">
+<span class="no">問 4</span>
+<p class="stem">$200$ 以下の自然数のうち、$4$ の倍数は エオ 個ある。</p>
+<div class="ans">正解　⑤ 5</div>
+<div class="blk"><h3>着眼点</h3><p>ある数以下の倍数の個数は、割り算の商で求まる。書き出す必要はない。</p></div>
+<div class="blk"><h3>解法</h3><p>$200$ 以下の $4$ の倍数は $4,\ 8,\ 12,\ \ldots,\ 200$ である。$200 \div 4 = 50$ なので50個。エオ＝50 なので、十の位のエ＝5。</p></div>
+<div class="blk"><h3>検算</h3><p>最小の $4$ と最大の $200$ の間に、$4$ ずつ増える数が並んでいる。個数は $(200-4) \div 4+1 = 49+1 = 50$ で一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>商が割り切れないときに切り上げてしまう誤りがある。$100$ 以下の $3$ の倍数なら $100 \div 3 = 33$ 余り $1$ なので33個であり、34個ではない。倍数の個数は商の整数部分である。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$N$ 以下の $a$ の倍数の個数は、$N$ を $a$ で割った商の整数部分に等しい。この考え方は、階乗に含まれる素因数の個数を数える問題などにも直接使える。</p></div>
+</article>
+<article class="q" id="q5">
+<span class="no">問 5</span>
+<p class="stem">$200$ 以下の自然数のうち、$4$ の倍数は $5$オ 個ある。</p>
+<div class="ans">正解　⓪ 0</div>
+<div class="blk"><h3>着眼点</h3><p>前問と同じ計算の一の位を答える。$200 \div 4$ が割り切れるかどうかが答えを決める。</p></div>
+<div class="blk"><h3>解法</h3><p>$200 \div 4 = 50$ でちょうど割り切れる。したがって個数は50個で、一の位のオ＝0。</p></div>
+<div class="blk"><h3>検算</h3><p>$4$ の倍数のうち最大のものは $200$ そのものである。$200$ が範囲に含まれているので、商がそのまま個数になる。もし範囲が $199$ 以下なら $199 \div 4 = 49$ 余り $3$ で49個となり、答えは変わる。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$0$ という答えを不安に思って選び直してしまうことがある。マーク式では $0$ も正当な答えである。計算の結果が $50$ であることに自信があれば、一の位は迷わず $0$ とする。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>「$200$ 以下」は $200$ を含む。「$200$ 未満」なら $200$ は含まれず49個になる。以下・未満・以上・より大きい、の四つの言い方を正確に読み分けることが、個数の問題では決定的に効く。</p></div>
+</article>
+<article class="q" id="q6">
+<span class="no">問 6</span>
+<p class="stem">$200$ 以下の自然数のうち、$4$ の倍数でも $6$ の倍数でもある数は カキ 個ある。</p>
+<div class="ans">正解　① 1</div>
+<div class="blk"><h3>着眼点</h3><p>$4$ の倍数でも $6$ の倍数でもある数とは、$4$ と $6$ の公倍数である。最小公倍数の倍数を数えればよい。</p></div>
+<div class="blk"><h3>解法</h3><p>$4$ と $6$ の最小公倍数は $12$。$200$ 以下の $12$ の倍数は $200 \div 12 = 16$ 余り $8$ より16個。カキ＝16 なので、十の位のカ＝1。</p></div>
+<div class="blk"><h3>検算</h3><p>$12$ の倍数を並べると $12,\ 24,\ \ldots,\ 192$ である。$192 \div 12 = 16$ なので確かに16個。次の $204$ は $200$ を超えるので入らない。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>$4$ と $6$ を掛けて $24$ の倍数を数えてしまう誤りが多い。公倍数を数えるときに使うのは積ではなく最小公倍数である。$4 = 2^{2}$、$6 = 2\times 3$ なので、最小公倍数は $2^{2}\times 3 = 12$ になる。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$a$ と $b$ の最小公倍数を $L$、最大公約数を $G$ とすると $ab = LG$ が成り立つ。ここでは $4\times 6 = 24$、$G = 2$ なので $L = 24 \div 2 = 12$ と求まる。素因数分解を使わずに出す道もある。</p></div>
+</article>
+<article class="q" id="q7">
+<span class="no">問 7</span>
+<p class="stem">$200$ 以下の自然数のうち、$4$ の倍数でも $6$ の倍数でもある数は $1$キ 個ある。</p>
+<div class="ans">正解　⑥ 6</div>
+<div class="blk"><h3>着眼点</h3><p>前問と同じく $12$ の倍数の個数を求め、その一の位を答える。</p></div>
+<div class="blk"><h3>解法</h3><p>$200 \div 12 = 16$ 余り $8$ なので、$200$ 以下の $12$ の倍数は16個。十の位が $1$、一の位が $6$ なので キ＝6。</p></div>
+<div class="blk"><h3>検算</h3><p>16個目の $12$ の倍数は $12\times 16 = 192$ で、確かに $200$ 以下。17個目は $12\times 17 = 204$ で $200$ を超える。境界が合っている。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>余りの $8$ を答えに含めてしまう誤りがある。個数を求めているので必要なのは商だけで、余りは「最後の倍数から $200$ までの隙間」を表すにすぎない。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$200$ 以下で $4$ の倍数または $6$ の倍数である数の個数は、包除原理より $50+33-16 = 67$ 個となる。「かつ」で求めた16個が、「または」を求める際に引く重なりの部分にあたる。</p></div>
+</article>
+<article class="q" id="q8">
+<span class="no">問 8</span>
+<p class="stem">$50$ 以下の自然数のうち、$6$ の倍数は ク 個ある。</p>
+<div class="ans">正解　⑧ 8</div>
+<div class="blk"><h3>着眼点</h3><p>$50$ を $6$ で割った商の整数部分が個数になる。割り切れない場合なので、余りの扱いに注意する。</p></div>
+<div class="blk"><h3>解法</h3><p>$50 \div 6 = 8$ 余り $2$ なので、$50$ 以下の $6$ の倍数は8個。実際に並べると $6,\ 12,\ 18,\ 24,\ 30,\ 36,\ 42,\ 48$ の8個である。よってク＝8。</p></div>
+<div class="blk"><h3>検算</h3><p>8個目は $6\times 8 = 48$ で $50$ 以下。9個目は $6\times 9 = 54$ で $50$ を超える。したがって8個で正しい。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>余りが出たときに切り上げて9個としてしまう誤りが多い。9個目にあたる $54$ は範囲外なので数えてはいけない。倍数の個数では商を切り捨てる。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>この数え方は「$N$ 以下の $a$ の倍数は $N \div a$ の商」という一つの規則で統一できる。$50$ 以下の $6$ の倍数が8個、$200$ 以下の $12$ の倍数が16個、いずれも同じ規則の適用である。</p></div>
+</article>
+<article class="q" id="q9">
+<span class="no">問 9</span>
+<p class="stem">$27$ 以下の自然数のうち、$3$ の倍数は ケ 個ある。</p>
+<div class="ans">正解　⑨ 9</div>
+<div class="blk"><h3>着眼点</h3><p>$27$ は $3$ で割り切れるので、商がそのまま個数になる。</p></div>
+<div class="blk"><h3>解法</h3><p>$27 \div 3 = 9$ なので9個。並べると $3,\ 6,\ 9,\ 12,\ 15,\ 18,\ 21,\ 24,\ 27$ で確かに9個である。よってケ＝9。</p></div>
+<div class="blk"><h3>検算</h3><p>最大の倍数 $27$ が範囲の上限そのものであり、9個目にあたる。$3\times 9 = 27$ で一致する。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>「$27$ 以下」に $27$ が含まれることを見落として8個としてしまう誤りがある。上限がちょうど倍数になっている場合は、それも数に入る。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>$27 = 3^{3}$ なので、$27$ 以下の $3$ の倍数は9個、$9$ の倍数は3個、$27$ の倍数は1個となる。指数が1つ上がるごとに個数が3分の1になるという構造が見える。</p></div>
+</article>
+<article class="q" id="q10">
+<span class="no">問 10</span>
+<p class="stem">実数 $x$ について、次の4つの命題を考える。<br>(a) $x &gt; 2$ ならば $x &gt; 1$        (b) $x^{2} &gt; 4$ ならば $x &gt; 2$<br>(c) $x = 1$ ならば $x^{2} = 1$      (d) $x^{2} = 1$ ならば $x = 1$<br>このうち真であるものは コ 個ある。</p>
+<div class="ans">正解　② 2</div>
+<div class="blk"><h3>着眼点</h3><p>命題が偽であることを示すには、反例を1つ挙げれば足りる。真であることを示すには、すべての場合で成り立つ理由が要る。まず反例を探す方が速い。</p></div>
+<div class="blk"><h3>解法</h3><p>(a) は真。$2$ より大きければ必ず $1$ より大きい。(b) は偽で、$x = -3$ とすると $x^{2} = 9 &gt; 4$ だが $x &gt; 2$ は成り立たない。(c) は真。$1$ を2乗すれば $1$ である。(d) は偽で、$x = -1$ とすると $x^{2} = 1$ だが $x = 1$ ではない。したがって真は (a) と (c) の2個で、コ＝2。</p></div>
+<div class="blk"><h3>検算</h3><p>偽とした2つには具体的な反例を挙げられた。真とした2つは、負の値を入れても成り立つ。$x = -5$ のとき (a) の仮定 $-5 &gt; 2$ は偽なので命題全体は真、(c) の仮定 $-5 = 1$ も偽なので同じく真である。</p></div>
+<div class="blk"><h3>つまずきやすい点</h3><p>2乗を含む条件で負の値を忘れる誤りが決定的である。$x^{2} &gt; 4$ は $x &gt; 2$ だけでなく $x &lt; -2$ も含み、$x^{2} = 1$ は $x = 1$ と $x = -1$ の両方を含む。2乗されている条件を見たら、必ず負の側を確かめること。</p></div>
+<div class="blk"><h3>関連して押さえる</h3><p>仮定が偽であるとき、命題全体は真とする約束になっている。したがって反例とは「仮定は成り立つのに結論が成り立たない」場合に限る。(b) の反例を探すときは、$x^{2} &gt; 4$ を満たす中から $x &gt; 2$ を満たさないものを探すことになる。</p></div>
+</article>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [{left: "$", right: "$", display: false}],
+    throwOnError: false
+  });
+});
+</script>
+</body>
+</html>
